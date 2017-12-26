@@ -1,0 +1,10 @@
+C:\Users\gabr\Documents\Programming\AdventOfCode\adoc09\bin\Debug\netcoreapp2.0\adoc09.deps.json
+C:\Users\gabr\Documents\Programming\AdventOfCode\adoc09\bin\Debug\netcoreapp2.0\adoc09.runtimeconfig.json
+C:\Users\gabr\Documents\Programming\AdventOfCode\adoc09\bin\Debug\netcoreapp2.0\adoc09.runtimeconfig.dev.json
+C:\Users\gabr\Documents\Programming\AdventOfCode\adoc09\bin\Debug\netcoreapp2.0\adoc09.dll
+C:\Users\gabr\Documents\Programming\AdventOfCode\adoc09\bin\Debug\netcoreapp2.0\adoc09.pdb
+C:\Users\gabr\Documents\Programming\AdventOfCode\adoc09\obj\Debug\netcoreapp2.0\adoc09.csproj.CoreCompileInputs.cache
+C:\Users\gabr\Documents\Programming\AdventOfCode\adoc09\obj\Debug\netcoreapp2.0\adoc09.AssemblyInfoInputs.cache
+C:\Users\gabr\Documents\Programming\AdventOfCode\adoc09\obj\Debug\netcoreapp2.0\adoc09.AssemblyInfo.cs
+C:\Users\gabr\Documents\Programming\AdventOfCode\adoc09\obj\Debug\netcoreapp2.0\adoc09.dll
+C:\Users\gabr\Documents\Programming\AdventOfCode\adoc09\obj\Debug\netcoreapp2.0\adoc09.pdb
