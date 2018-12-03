@@ -285,10 +285,9 @@
             (+ (gethash c chars-count-hash-table) 1)))
     chars-count-hash-table))
 
-(defun has-n-chars (text n)
-  (let ((chars-count (count-chars text)))
-    (loop for c being the hash-value of chars-count do
-          (if (= c n) (return t)))))
+(defun has-n-chars (chars-count n)
+  (loop for c being the hash-value of chars-count do
+        (if (= c n) (return t))))
 
 (defun count-diff-chars (left right)
   (let ((l-length (length left))
@@ -316,11 +315,12 @@
     (coerce (reverse common-chars) 'string)))
 
 (defun solve1 (input)
-  (let ((twosCount 0) (threesCount 0))
+  (let ((twos-count 0) (threes-count 0))
     (dolist (i input)
-      (if (has-n-chars i 2) (incf twosCount))
-      (if (has-n-chars i 3) (incf threesCount)))
-    (* twosCount threesCount)))
+      (let ((chars-count (count-chars i)))
+        (if (has-n-chars chars-count 2) (incf twos-count))
+        (if (has-n-chars chars-count 3) (incf threes-count))))
+    (* twos-count threes-count)))
 
 (defun solve2 (input)
   (dolist (l input)
