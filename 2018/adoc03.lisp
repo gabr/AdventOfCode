@@ -1,4 +1,5 @@
 ;;;; https://adventofcode.com/2018/day/3
+(load "common.lisp")
 
 ;(declaim (optimize (debug 3)))
 
@@ -2646,25 +2647,6 @@
                       "#1315 @ 646,354: 17x21"
                       "#1316 @ 494,57: 20x22"
                       "#1317 @ 382,340: 28x29"))
-
-(defun print-hash-table (table)
-  (maphash
-    #'(lambda (key value) (format t "~S: ~S~%" key value))
-    table))
-
-(defun split-string-by (string-to-split by-char)
-  "Returns a list of substrings of string
-  divided by ONE given 'by character' each.
-  Note: Two consecutive 'by characters' will be seen
-  as if there were an empty string between them."
-  (loop for i = 0 then (1+ j)
-        as j = (position by-char string-to-split :start i)
-        collect (subseq string-to-split i j)
-        while j))
-
-(defun strings-list-to-numbers-list (strings)
-  (loop for s in strings
-        collect (parse-integer s)))
 
 (defun parse-input (input)
   "Parses input in form of list with entries: #1 @ 1,3: 4x4

@@ -1,4 +1,5 @@
 ;;;; https://adventofcode.com/2018/day/2
+(load "common.lisp")
 
 (defvar *example-input1* nil)
 (setf *example-input1* '("abcdef"
@@ -269,11 +270,6 @@
                 "wlpiogsvyfecfujmnxaktdrwbz"
                 "rlpiogsvyfecjlqmnxaktdqhbz"
                 "wlpfogsvyfecjuimnxaktfrhbz"))
-
-(defun print-hash-table (table)
-  (maphash
-    #'(lambda (key value) (format t "~S: ~S~%" key value))
-    table))
 
 (defun count-chars (text)
   (let ((chars-count-hash-table (make-hash-table)))
