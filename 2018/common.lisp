@@ -1,6 +1,14 @@
-(defun print-hash-table (table)
+(defun print-hash-table (table &key (separator #\Newline))
   (maphash
-    #'(lambda (key value) (format t "~S: ~S~%" key value))
+    #'(lambda (key value) (format t "~S: ~S~a" key value separator))
+    table))
+
+(defun print-hash-hash-table (table)
+  (maphash
+    #'(lambda (key value)
+        (format t "~S: [" key)
+        (print-hash-table value :separator ", ")
+        (format t "]~%"))
     table))
 
 (defun string-trim-all-whitespace-characters (string-to-trim)
