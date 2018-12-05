@@ -1089,24 +1089,18 @@
         collect
 
         ;; example input: [1518-11-05 00:03] Guard #99 begins shift
-        (let ((input-split (split-string-by i #\] :trim-whitespace t))
-              (time-string)
-              (note-string)
-              (note-split)
-              (entry-type))
-
-          (setf time-string (string-left-trim '(#\[) (nth 0 input-split)))
-          (setf note-string (nth 1 input-split))
-          (setf note-split (split-string-by note-string #\Space))
-          (setf entry-type
-                (cond
+        (let* ((input-split (split-string-by i #\] :trim-whitespace t))
+              (time-string (string-left-trim '(#\[) (nth 0 input-split)))
+              (note-string (nth 1 input-split))
+              (note-split (split-string-by note-string #\Space))
+              (entry-type (cond
                   ((equal #\G (char note-string 0)) :guard)
                   ((equal #\w (char note-string 0)) :wake-up)
                   ((equal #\f (char note-string 0)) :fall-asleep)
                   (t (progn
                        (format t "ERROR: Unknown type string: ~a~%" (nth 0 note-split))
                        (break)
-                       :unknown))))
+                       :unknown)))))
 
           (make-entry
             :type entry-type
@@ -1128,8 +1122,7 @@
     guards-asleep-minutes-table
     start-sleep-entry
     stop-sleep-entry)
-
-  (let ((sleep-start-minute (get-entry-time-minute start-sleep-entry))
+(let ((sleep-start-minute (get-entry-time-minute start-sleep-entry))
         (sleep-end-minute (get-entry-time-minute stop-sleep-entry))
         (nap-minutes (if (gethash guard-id guards-asleep-minutes-table)
                        (gethash guard-id guards-asleep-minutes-table)
@@ -1147,8 +1140,7 @@
             (incf (gethash m nap-minutes))
             (setf (gethash m nap-minutes) 1)))))
 
-
-(defun solve1 (entries)
+(defun simulate-guards-sleep (entries)
   (let ((current-guard-entry nil)
         (current-sleep-entry nil)
         (guards-asleep-time-table (make-hash-table))
@@ -1192,36 +1184,65 @@
         ((eq (entry-type entry) :fall-asleep)
          (setf current-sleep-entry entry))))
 
-    (let ((sleepest-guard-id -1)
-          (sleepest-guard-asleep-time -1)
-          (sleep-minutes-table nil)
-          (sleepest-minute -1)
-          (sleepest-minute-time -1))
+    (list
+      guards-asleep-time-table
+      guards-asleep-minutes-table)))
 
-      (loop for guard-id being the hash-keys of guards-asleep-time-table
-           using (hash-value total-sleep-time) do
-           (if (> total-sleep-time sleepest-guard-asleep-time)
-             (progn
-               (setf sleepest-guard-asleep-time total-sleep-time)
-               (setf sleepest-guard-id guard-id))))
+(defun solve1 (guards-asleep-time-table guards-asleep-minutes-table)
+  (let ((sleepest-guard-id -1)
+        (sleepest-guard-asleep-time -1)
+        (sleep-minutes-table nil)
+        (sleepest-minute -1)
+        (sleepest-minute-time -1))
 
-      (format t "Sleepest guard-id: ~a~%" sleepest-guard-id)
-      (setf sleep-minutes-table (gethash sleepest-guard-id guards-asleep-minutes-table))
+    (loop for guard-id being the hash-keys of guards-asleep-time-table
+          using (hash-value total-sleep-time) do
+          (if (> total-sleep-time sleepest-guard-asleep-time)
+            (progn
+              (setf sleepest-guard-asleep-time total-sleep-time)
+              (setf sleepest-guard-id guard-id))))
 
-      (loop for minute being the hash-keys of sleep-minutes-table
-           using (hash-value total-sleep-minute-time) do
-           (if (> total-sleep-minute-time sleepest-minute-time)
-             (progn
-               (setf sleepest-minute-time total-sleep-minute-time)
-               (setf sleepest-minute minute))))
+    ;(format t "Sleepest guard-id: ~a~%" sleepest-guard-id)
+    (setf sleep-minutes-table (gethash sleepest-guard-id guards-asleep-minutes-table))
 
-      (format t "Sleepest minute: ~a~%" sleepest-minute)
-      (* sleepest-guard-id sleepest-minute))))
+    (loop for minute being the hash-keys of sleep-minutes-table
+          using (hash-value total-sleep-minute-time) do
+          (if (> total-sleep-minute-time sleepest-minute-time)
+            (progn
+              (setf sleepest-minute-time total-sleep-minute-time)
+              (setf sleepest-minute minute))))
 
-(let ((input
-        (sort-entries
-          (parse-input-into-entries
-            (split-string-by *input* #\Newline :trim-whitespace t)))))
-  (print (solve1 input)))
+    ;(format t "Sleepest minute: ~a~%" sleepest-minute)
+    (* sleepest-guard-id sleepest-minute)))
 
+(defun solve2 (guards-asleep-minutes-table)
+  (let ((sleepest-minute-guard-id -1)
+        (sleepest-minute-guard-minute -1)
+        (sleepest-minute-guard-minute-count -1))
+
+    (loop for guard-id being the hash-keys of guards-asleep-minutes-table
+          using (hash-value guard-asleep-minutes) do
+          (loop for minute being the hash-keys of guard-asleep-minutes
+                using (hash-value minute-count) do
+                (if (> minute-count sleepest-minute-guard-minute-count)
+                  (progn
+                    (setf sleepest-minute-guard-id guard-id)
+                    (setf sleepest-minute-guard-minute minute)
+                    (setf sleepest-minute-guard-minute-count minute-count)))))
+
+    (* sleepest-minute-guard-id sleepest-minute-guard-minute)))
+
+(let* ((guards-sleep-time-tables
+         (simulate-guards-sleep
+           (sort-entries
+             (parse-input-into-entries
+               (split-string-by *input* #\Newline :trim-whitespace t)))))
+       (guards-asleep-time-table    (nth 0 guards-sleep-time-tables))
+       (guards-asleep-minutes-table (nth 1 guards-sleep-time-tables)))
+
+  (print (solve1
+           guards-asleep-time-table
+           guards-asleep-minutes-table))
+
+  (print (solve2 guards-asleep-minutes-table)))
 
