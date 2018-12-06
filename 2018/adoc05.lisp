@@ -48,7 +48,8 @@
         (units '(#\A #\B #\C #\D #\E #\F #\G #\H #\I #\J #\K #\L #\M #\N #\O #\P #\Q #\R #\S #\T #\U #\V #\W #\X #\Y #\Z)))
 
     (dolist (u units)
-      (setf after-reaction-length (length (react (remove u input :test 'char-equal))))
+      (setf after-reaction-length
+            (length (react (remove u input :test 'char-equal))))
       (if (< after-reaction-length shortest-length)
         (setf shortest-length after-reaction-length)))
 
