@@ -1093,14 +1093,15 @@
                (time-string (string-left-trim '(#\[) (nth 0 input-split)))
                (note-string (nth 1 input-split))
                (note-split (split-string-by note-string #\Space))
-               (entry-type (cond
-                             ((equal #\G (char note-string 0)) :guard)
-                             ((equal #\w (char note-string 0)) :wake-up)
-                             ((equal #\f (char note-string 0)) :fall-asleep)
-                             (t (progn
-                                  (format t "ERROR: Unknown type string: ~a~%" (nth 0 note-split))
-                                  (break)
-                                  :unknown)))))
+               (entry-type
+                 (cond
+                   ((equal #\G (char note-string 0)) :guard)
+                   ((equal #\w (char note-string 0)) :wake-up)
+                   ((equal #\f (char note-string 0)) :fall-asleep)
+                   (t (progn
+                        (format t "ERROR: Unknown type string: ~a~%" (nth 0 note-split))
+                        (break)
+                        :unknown)))))
 
           (make-entry
             :type entry-type

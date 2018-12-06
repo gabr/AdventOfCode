@@ -1,1 +1,1 @@
-sbcl --noinform --load adoc04.lisp --quit
+sbcl --noinform --load adoc05.lisp --quit
