@@ -1,1 +1,1 @@
-sbcl --noinform --load adoc06.lisp --quit
+sbcl --noinform --load adoc07.lisp --quit
