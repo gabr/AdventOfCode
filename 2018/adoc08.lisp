@@ -1,4 +1,5 @@
-;;; https://adventofcode.com/2018/day/8
+;;;; https://adventofcode.com/2018/day/8
+;;;; vim: nowrap
 
 (defvar *example-input*)
 (setf *example-input* '(2 3 0 3 10 11 12 1 1 0 1 99 2 1 1 2))
@@ -46,22 +47,38 @@
   (+
 
     ;; add all metadata
-    (apply
-      #'+
-      (loop for node in nodes
-            when (< 0 (node-metadata-count node))
-            collect (apply #'+ (node-metadata node))))
+    (apply #'+
+           (loop for node in nodes
+                 when (< 0 (node-metadata-count node))
+                 collect (apply #'+ (node-metadata node))))
 
     ;; add results from childs
-    (apply
-      #'+
-      (loop for node in nodes
-            collect
-            (if (< 0 (node-childs-count node))
-              (solve1 (node-childs node))
-              0)))))
+    (apply #'+
+           (loop for node in nodes
+                 collect
+                 (if (< 0 (node-childs-count node))
+                   (solve1 (node-childs node))
+                   0)))))
+
+(defun solve2 (nodes)
+  (+
+
+    ;; sum up metadata entries from nodes without childs
+    (apply #'+
+           (loop for node in nodes
+                 when (= 0 (node-childs-count node))
+                 collect (apply #'+ (node-metadata node))))
+
+    ;; sum up childs
+    (apply #'+
+           (loop for node in nodes
+                 when (< 0 (node-childs-count node))
+                 collect (solve2 (loop for metadata in (node-metadata node)
+                                      when (nth (1- metadata) (node-childs node))
+                                      collect (nth (1- metadata) (node-childs node))))))))
+
 
 (let ((input (car (parse-input *input*))))
-  ;(print-tree input)
-  (print (solve1 input)))
+  (print (solve1 input))
+  (print (solve2 input)))
 
