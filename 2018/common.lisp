@@ -33,3 +33,7 @@
   (loop for s in strings
         collect (parse-integer s)))
 
+(defun string-numbers-to-numbers-list (input-string &key (delimiter #\,))
+  (strings-list-to-numbers-list
+    (split-string-by input-string delimiter)))
+
