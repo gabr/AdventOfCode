@@ -9,7 +9,7 @@ namespace Solutions
             out int min,
             out int max,
             out char character,
-            out string password)
+            out ReadOnlySpan<char> password)
         {
             int start = 0;
             int end   = 1;
@@ -27,11 +27,11 @@ namespace Solutions
 
             max       = int.Parse(passwordLine.Slice(start, end - start));
             character = passwordLine[end + 1];
-            password  = new String(passwordLine.Slice(end + 4));
+            password  = passwordLine.Slice(end + 4);
         }
 
         private bool IsPasswordValid1(
-            string password,
+            in ReadOnlySpan<char> password,
             int min,
             int max,
             char character)
@@ -49,7 +49,7 @@ namespace Solutions
             int min;
             int max;
             char character;
-            string password;
+            ReadOnlySpan<char> password;
 
             long validPasswordsCount = 0;
 
@@ -62,7 +62,7 @@ namespace Solutions
                     out character,
                     out password);
 
-                if (IsPasswordValid1(password, min, max, character))
+                if (IsPasswordValid1(in password, min, max, character))
                     validPasswordsCount += 1;
             }
 
@@ -70,7 +70,7 @@ namespace Solutions
         }
 
         private bool IsPasswordValid2(
-            string password,
+            in ReadOnlySpan<char> password,
             int pos1,
             int pos2,
             char character)
@@ -85,7 +85,7 @@ namespace Solutions
             int min;
             int max;
             char character;
-            string password;
+            ReadOnlySpan<char> password;
 
             long validPasswordsCount = 0;
 
@@ -98,7 +98,7 @@ namespace Solutions
                     out character,
                     out password);
 
-                if (IsPasswordValid2(password, min, max, character))
+                if (IsPasswordValid2(in password, min, max, character))
                     validPasswordsCount += 1;
             }
 

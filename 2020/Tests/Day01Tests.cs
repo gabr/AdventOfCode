@@ -26,6 +26,15 @@ namespace Solutions
         }
 
         [TestMethod]
+        public void Test1PuzzleInput()
+        {
+            var day01 = new Day01();
+            Assert.AreEqual(
+                956091,
+                day01.Solve1(Day01.PUZZLE_INPUT));
+        }
+
+        [TestMethod]
         public void Test2FromExample()
         {
             var day01 = new Day01();
@@ -43,6 +52,17 @@ namespace Solutions
                         1456,
                     }));
         }
+
+        [TestMethod]
+        public void Test2PuzzleInput()
+        {
+            var day01 = new Day01();
+            Assert.AreEqual(
+                79734368,
+                day01.Solve2(Day01.PUZZLE_INPUT));
+        }
+
+
     }
 }
 
