@@ -101,10 +101,10 @@ pid:3556412378 byr:2007
         [TestMethod]
         public void Test2PuzzleInput()
         {
-            //var day = new Day04();
-            //Assert.AreEqual(
-            //    4385176320,
-            //    day.Solve2(Day04.PUZZLE_INPUT));
+            var day = new Day04();
+            Assert.AreEqual(
+                116,
+                day.Solve2(Day04.PUZZLE_INPUT));
         }
 
     }
