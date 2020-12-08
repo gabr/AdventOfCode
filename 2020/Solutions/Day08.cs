@@ -7,22 +7,21 @@ namespace Solutions
     public class Day08
     {
 
-        public int ExecuteInstruction(int instructionIndex, string[] instructions, ref int accumulator)
+        public int ExecuteInstruction(string instruction, ref int accumulator)
         {
-            string instruction = instructions[instructionIndex];
             switch (instruction[0])
             {
                 case 'n':
-                    return instructionIndex + 1;
+                    return +1;
 
                 case 'a':
                     int increment = int.Parse(instruction.AsSpan(4));
                     accumulator += increment;
-                    return instructionIndex + 1;
+                    return 1;
 
                 case 'j':
                     int jump = int.Parse(instruction.AsSpan(4));
-                    return instructionIndex + jump;
+                    return jump;
             }
 
             return -1;
@@ -38,13 +37,73 @@ namespace Solutions
             while (true)
             {
                 instructionIndexesSet.Add(instructionIndex);
-                instructionIndex = ExecuteInstruction(instructionIndex, instructions, ref accumulator);
+                instructionIndex += ExecuteInstruction(instructions[instructionIndex], ref accumulator);
 
                 if (instructionIndexesSet.Contains(instructionIndex))
                     break;
             }
 
             return accumulator;
+        }
+
+        public bool TestIfInstructionsEnd(int instructionIndex, string firstInstruction, string[] instructions, ref int accumulator)
+        {
+            var instructionIndexesSet = new HashSet<int>();
+
+            bool finished() => instructionIndex == instructions.Length;
+
+            if (finished())
+                return true;
+
+            instructionIndexesSet.Add(instructionIndex);
+            instructionIndex += ExecuteInstruction(firstInstruction, ref accumulator);
+
+            if (finished())
+                return true;
+
+            if (instructionIndexesSet.Contains(instructionIndex))
+                return false;
+
+            while (true)
+            {
+                instructionIndexesSet.Add(instructionIndex);
+                instructionIndex += ExecuteInstruction(instructions[instructionIndex], ref accumulator);
+
+                if (finished())
+                    return true;
+
+                if (instructionIndexesSet.Contains(instructionIndex))
+                    return false;
+            }
+        }
+
+        public int Solve2(string[] instructions)
+        {
+            int instructionIndex = 0;
+            int tmpAccumulator   = 0;
+
+            while (true)
+            {
+                if (instructionIndex == instructions.Length)
+                    return -1;
+
+                string instruction = instructions[instructionIndex];
+
+                if (instruction[0] == 'n')
+                {
+                    int resultAccumulator = tmpAccumulator;
+                    if (TestIfInstructionsEnd(instructionIndex, "jmp " + instruction.Substring(4), instructions, ref resultAccumulator))
+                        return resultAccumulator;
+                }
+                else if (instruction[0] == 'j')
+                {
+                    int resultAccumulator = tmpAccumulator;
+                    if (TestIfInstructionsEnd(instructionIndex, "nop " + instruction.Substring(4), instructions, ref resultAccumulator))
+                        return resultAccumulator;
+                }
+
+                instructionIndex += ExecuteInstruction(instruction, ref tmpAccumulator);
+            }
         }
 
 

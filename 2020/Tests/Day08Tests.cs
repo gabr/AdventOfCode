@@ -31,28 +31,28 @@ namespace Solutions
         [TestMethod]
         public void Test1PuzzleInput()
         {
-            //var day = new Day08();
-            //Assert.AreEqual(
-            //    128,
-            //    day.Solve1(Day08.PUZZLE_INPUT));
+            var day = new Day08();
+            Assert.AreEqual(
+                1179,
+                day.Solve1(Day08.PUZZLE_INPUT));
         }
 
         [TestMethod]
         public void Test2FromExample()
         {
-            //var day = new Day08();
-            //Assert.AreEqual(
-            //    32,
-            //    day.Solve2(TEST_INPUT));
+            var day = new Day08();
+            Assert.AreEqual(
+                8,
+                day.Solve2(TEST_INPUT));
         }
 
         [TestMethod]
         public void Test2PuzzleInput()
         {
-            //var day = new Day08();
-            //Assert.AreEqual(
-            //    ,
-            //    day.Solve2(Day08.PUZZLE_INPUT));
+            var day = new Day08();
+            Assert.AreEqual(
+                1089,
+                day.Solve2(Day08.PUZZLE_INPUT));
         }
 
     }
