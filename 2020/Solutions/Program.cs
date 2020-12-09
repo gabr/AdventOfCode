@@ -27,8 +27,11 @@ namespace Solutions
             //Console.WriteLine((new Day07()).Solve1(Day07.PUZZLE_INPUT, "shiny gold"));
             //Console.WriteLine((new Day07()).Solve2(Day07.PUZZLE_INPUT, "shiny gold"));
 
-            Console.WriteLine((new Day08()).Solve1(Day08.PUZZLE_INPUT));
-            Console.WriteLine((new Day08()).Solve2(Day08.PUZZLE_INPUT));
+            //Console.WriteLine((new Day08()).Solve1(Day08.PUZZLE_INPUT));
+            //Console.WriteLine((new Day08()).Solve2(Day08.PUZZLE_INPUT));
+
+            Console.WriteLine((new Day09()).Solve1(Day09.PUZZLE_INPUT, 25));
+            Console.WriteLine((new Day09()).Solve2(Day09.PUZZLE_INPUT, 25));
         }
     }
 }
