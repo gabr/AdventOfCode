@@ -1,0 +1,146 @@
+using System;
+using System.Linq;
+using System.Collections.Generic;
+
+namespace Solutions
+{
+    public class Day10
+    {
+        public int Solve1(int[] adapters)
+        {
+            Array.Sort(adapters);
+
+            int numberOf1Diffs = 0;
+            int numberOf3Diffs = 0;
+
+            if (adapters[0] == 1) numberOf1Diffs += 1;
+            if (adapters[0] == 3) numberOf3Diffs += 1;
+
+            for (int i = 0; i < adapters.Length - 1; i++)
+            {
+                int diff = adapters[i + 1] - adapters[i];
+
+                if (diff == 1) numberOf1Diffs += 1;
+                if (diff == 3) numberOf3Diffs += 1;
+            }
+
+            // for built-in
+            numberOf3Diffs += 1;
+
+            return numberOf1Diffs * numberOf3Diffs;
+        }
+
+        public static readonly int[] PUZZLE_INPUT =
+        {
+            48,
+            171,
+            156,
+            51,
+            26,
+            6,
+            80,
+            62,
+            65,
+            82,
+            130,
+            97,
+            49,
+            31,
+            142,
+            83,
+            75,
+            20,
+            154,
+            119,
+            56,
+            114,
+            92,
+            33,
+            140,
+            74,
+            118,
+            1,
+            96,
+            44,
+            128,
+            134,
+            121,
+            64,
+            158,
+            27,
+            17,
+            101,
+            59,
+            12,
+            89,
+            88,
+            145,
+            167,
+            11,
+            3,
+            39,
+            43,
+            105,
+            16,
+            170,
+            63,
+            111,
+            2,
+            108,
+            21,
+            146,
+            77,
+            45,
+            52,
+            32,
+            127,
+            147,
+            76,
+            58,
+            37,
+            86,
+            129,
+            57,
+            133,
+            120,
+            163,
+            138,
+            161,
+            139,
+            71,
+            9,
+            141,
+            168,
+            164,
+            124,
+            157,
+            95,
+            25,
+            38,
+            69,
+            87,
+            155,
+            135,
+            15,
+            102,
+            70,
+            34,
+            42,
+            24,
+            50,
+            68,
+            169,
+            10,
+            55,
+            117,
+            30,
+            81,
+            151,
+            100,
+            162,
+            148,
+        };
+
+    }
+}
+

@@ -62,7 +62,7 @@ namespace Solutions
         {
             var day = new Day09();
             Assert.AreEqual(
-                1962331,
+                1962331ul,
                 day.Solve2(Day09.PUZZLE_INPUT, 25));
         }
 
