@@ -108,7 +108,7 @@ namespace Solutions
         {
             var day = new Day10();
             Assert.AreEqual(
-                442136281481216,
+                442136281481216ul,
                 day.Solve2(Day10.PUZZLE_INPUT));
         }
 
