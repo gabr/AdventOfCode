@@ -30,6 +30,38 @@ namespace Solutions
             return numberOf1Diffs * numberOf3Diffs;
         }
 
+        public UInt64 Solve2(int[] adapters)
+        {
+            Array.Sort(adapters);
+
+            var buffer = new int[adapters.Length + 2];
+            buffer[0] = 0;
+            buffer[buffer.Length - 1] = adapters[adapters.Length - 1] + 3;
+            Array.Copy(adapters, 0, buffer, 1, adapters.Length);
+
+            UInt64 result = 1;
+            int onesCount = 0;
+            int tmp       = 0;
+
+            for (int i = 1; i < buffer.Length; i++)
+            {
+                if (buffer[i] - buffer[i - 1] == 1)
+                {
+                    onesCount += 1;
+                }
+                else
+                {
+                    for (int j = 1; j < onesCount; j++)
+                        tmp += j;
+
+                    result *= (UInt64)(tmp + 1);
+                    onesCount = tmp = 0;
+                }
+            }
+
+            return result;
+        }
+
         public static readonly int[] PUZZLE_INPUT =
         {
             48,

@@ -85,21 +85,31 @@ namespace Solutions
         }
 
         [TestMethod]
-        public void Test2FromExample()
+        public void Test2FromExample1()
         {
-            //var day = new Day10();
-            //Assert.AreEqual(
-            //    ,
-            //    day.Solve2(TEST_INPUT));
+            var day = new Day10();
+            Assert.AreEqual(
+                8ul,
+                day.Solve2(TEST_INPUT1));
         }
+
+        [TestMethod]
+        public void Test2FromExample2()
+        {
+            var day = new Day10();
+            Assert.AreEqual(
+                19208ul,
+                day.Solve2(TEST_INPUT2));
+        }
+
 
         [TestMethod]
         public void Test2PuzzleInput()
         {
-            //var day = new Day10();
-            //Assert.AreEqual(
-            //    ,
-            //    day.Solve2(Day10.PUZZLE_INPUT));
+            var day = new Day10();
+            Assert.AreEqual(
+                442136281481216,
+                day.Solve2(Day10.PUZZLE_INPUT));
         }
 
     }

@@ -33,8 +33,8 @@ namespace Solutions
             //Console.WriteLine((new Day09()).Solve1(Day09.PUZZLE_INPUT, 25));
             //Console.WriteLine((new Day09()).Solve2(Day09.PUZZLE_INPUT, 25));
 
-            Console.WriteLine((new Day10()).Solve1(Day10.PUZZLE_INPUT));
-            //Console.WriteLine((new Day10()).Solve2(Day10.PUZZLE_INPUT));
+            //Console.WriteLine((new Day10()).Solve1(Day10.PUZZLE_INPUT));
+            Console.WriteLine((new Day10()).Solve2(Day10.PUZZLE_INPUT));
         }
     }
 }
