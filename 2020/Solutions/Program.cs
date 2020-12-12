@@ -38,6 +38,9 @@ namespace Solutions
 
             //Console.WriteLine((new Day11()).Solve1(Day11.PUZZLE_INPUT));
             //Console.WriteLine((new Day11()).Solve2(Day11.PUZZLE_INPUT));
+
+            //Console.WriteLine((new Day12()).Solve1(Day12.PUZZLE_INPUT));
+            Console.WriteLine((new Day12()).Solve2(Day12.PUZZLE_INPUT));
         }
     }
 }
