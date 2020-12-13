@@ -1,2 +1,2 @@
-dotnet test --filter Day12
+dotnet test --filter Day13
 REM dotnet test

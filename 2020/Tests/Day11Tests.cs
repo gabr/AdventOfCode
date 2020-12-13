@@ -21,7 +21,7 @@ namespace Solutions
         };
 
         [TestMethod]
-        public void Test1FromExample1()
+        public void Test1FromExample()
         {
             var day = new Day11();
             Assert.AreEqual(
@@ -40,7 +40,7 @@ namespace Solutions
         }
 
         [TestMethod]
-        public void Test2FromExample1()
+        public void Test2FromExample()
         {
             var day = new Day11();
             Assert.AreEqual(
