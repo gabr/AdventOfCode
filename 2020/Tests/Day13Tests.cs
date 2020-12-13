@@ -85,10 +85,10 @@ namespace Solutions
         [TestMethod]
         public void Test2PuzzleInput()
         {
-            //var day = new Day13();
-            //Assert.AreEqual(
-            //    ,
-            //    day.Solve2(Day13.PUZZLE_INPUT));
+            var day = new Day13();
+            Assert.AreEqual(
+                939490236001473ul,
+                day.Solve2(Day13.PUZZLE_INPUT));
         }
 
     }
