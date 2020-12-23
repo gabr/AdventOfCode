@@ -28,12 +28,9 @@ namespace Solutions
         public void Test1PuzzleInput()
         {
             var day = new Day14();
-            // 52056536420 <-- too low
-            Assert.IsTrue(52056536420 < day.Solve1(Day14.PUZZLE_INPUT));
-
-            //Assert.AreEqual(
-            //    ,
-            //    day.Solve1(Day14.PUZZLE_INPUT));
+            Assert.AreEqual(
+                7817357407588ul,
+                day.Solve1(Day14.PUZZLE_INPUT));
         }
 
         [TestMethod]
