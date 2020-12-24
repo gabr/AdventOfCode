@@ -48,8 +48,11 @@ namespace Solutions
             //Console.WriteLine((new Day14()).Solve1(Day14.PUZZLE_INPUT));
             //Console.WriteLine((new Day14()).Solve2(Day14.PUZZLE_INPUT));
 
-            Console.WriteLine((new Day15()).Solve(Day15.PUZZLE_INPUT, 2020ul));
-            Console.WriteLine((new Day15()).Solve(Day15.PUZZLE_INPUT, 30000000ul));
+            //Console.WriteLine((new Day15()).Solve(Day15.PUZZLE_INPUT, 2020ul));
+            //Console.WriteLine((new Day15()).Solve(Day15.PUZZLE_INPUT, 30000000ul));
+
+            Console.WriteLine((new Day16()).Solve(Day16.PUZZLE_INPUT));
+            //Console.WriteLine((new Day16()).Solve(Day16.PUZZLE_INPUT));
         }
     }
 }
