@@ -17,6 +17,9 @@ namespace Solutions
             Assert.AreEqual(437ul,   day.Solve1(new [] {"5 + (8 * 3 + 9 + 3 * 4 * 3)"}));
             Assert.AreEqual(12240ul, day.Solve1(new [] {"5 * 9 * (7 * 3 * 3 + 9 * 3 + (8 + 6 * 4))"}));
             Assert.AreEqual(13632ul, day.Solve1(new [] {"((2 + 4 * 9) * (6 + 9 * 8 + 6) + 6) + 2 + 4 * 2"}));
+            Assert.AreEqual(17ul,    day.Solve1(new [] {"2 + (3 * (1 + 4 ) )"}));
+            Assert.AreEqual(5ul,     day.Solve1(new [] {"((2) + (3))"}));
+            Assert.AreEqual(8ul,     day.Solve1(new [] {"((2) + (3 * 2))"}));
         }
 
 
