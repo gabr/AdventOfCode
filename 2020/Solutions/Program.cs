@@ -60,9 +60,12 @@ namespace Solutions
             //Console.WriteLine((new Day18()).Solve1(Day18.PUZZLE_INPUT));
             //Console.WriteLine((new Day18()).Solve2(Day18.PUZZLE_INPUT));
 
-            Console.WriteLine((new Day19()).Solve1(Day19.PUZZLE_INPUT));
+            //Console.WriteLine((new Day19()).Solve1(Day19.PUZZLE_INPUT));
             //Console.WriteLine((new Day19()).Solve1(Day19.PUZZLE_INPUT_IREK));
             //Console.WriteLine((new Day19()).Solve2(Day19.PUZZLE_INPUT));
+
+            Console.WriteLine((new Day20()).Solve1(Day20.PUZZLE_INPUT));
+            //Console.WriteLine((new Day20()).Solve2(Day20.PUZZLE_INPUT));
 
         }
     }
