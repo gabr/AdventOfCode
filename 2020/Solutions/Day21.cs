@@ -77,17 +77,8 @@ namespace Solutions
             );
         }
 
-        public int Solve1(string[] foods)
+        public (Dictionary<string, HashSet<string>> PotentialAllergentsIngredientsMap, HashSet<string> PotentialAllergentsIngredientsSet) ExtractPotentialAllergents(Dictionary<string, List<HashSet<string>>> allergentsToIngredients)
         {
-            (var allergentsToIngredients, var ingredientsCount) = MapFoodsByAllergents(foods);
-
-            foreach (var allergent in allergentsToIngredients.Keys)
-            {
-                Console.WriteLine($"'{allergent}':");
-                foreach (var ingredients in allergentsToIngredients[allergent])
-                    Console.WriteLine($"  ({ingredients.Count}): {string.Join(", ", ingredients.Select(i => $"'{i}'"))}");
-            }
-
             var potentialAllergentsIngredientsMap = new Dictionary<string, HashSet<string>>();
             var potentialAllergentsIngredientsSet = new HashSet<string>();
 
@@ -108,12 +99,55 @@ namespace Solutions
                 potentialAllergentsIngredientsMap.Add(allergent, potentialAllergentIngredients);
             }
 
+            Console.WriteLine("Potential allergents:");
+            foreach (var allergent in potentialAllergentsIngredientsMap.Keys)
+                Console.WriteLine($"'{allergent}': {string.Join(", ", potentialAllergentsIngredientsMap[allergent].Select(i => $"'{i}'"))}");
+
+            return (
+                potentialAllergentsIngredientsMap,
+                potentialAllergentsIngredientsSet
+            );
+        }
+
+        public int Solve1(string[] foods)
+        {
+            (var allergentsToIngredients, var ingredientsCount) = MapFoodsByAllergents(foods);
+
+            foreach (var allergent in allergentsToIngredients.Keys)
+            {
+                Console.WriteLine($"'{allergent}':");
+                foreach (var ingredients in allergentsToIngredients[allergent])
+                    Console.WriteLine($"  ({ingredients.Count}): {string.Join(", ", ingredients.Select(i => $"'{i}'"))}");
+            }
+
+            (var potentialAllergentsIngredientsMap, var potentialAllergentsIngredientsSet) = ExtractPotentialAllergents(allergentsToIngredients);
+
             var safeToEat = ingredientsCount.Keys
                 .Where(i => potentialAllergentsIngredientsSet.Contains(i) == false)
                 .ToArray();
 
             Console.WriteLine($"safe to eat: {string.Join(", ", safeToEat.Select(i => $"'{i}' ({ingredientsCount[i]})"))}");
             return safeToEat.Sum(i => ingredientsCount[i]);
+        }
+
+        public string Solve2(string[] foods)
+        {
+            (var allergentsToIngredients, var ingredientsCount) = MapFoodsByAllergents(foods);
+            (var potentialAllergentsIngredientsMap, var potentialAllergentsIngredientsSet) = ExtractPotentialAllergents(allergentsToIngredients);
+
+            while (potentialAllergentsIngredientsMap.Values.Any(v => v.Count > 1))
+                foreach (var ingredients in potentialAllergentsIngredientsMap.Values)
+                    if (ingredients.Count == 1)
+                    {
+                        var ingredient = ingredients.First();
+                        foreach (var rest in potentialAllergentsIngredientsMap.Values)
+                            if (rest.Count > 1 && rest.Contains(ingredient))
+                                rest.Remove(ingredient);
+                    }
+
+            return string.Join(",", potentialAllergentsIngredientsMap.Keys
+                .OrderBy(k => k)
+                .Select(k => potentialAllergentsIngredientsMap[k].First()));
         }
 
 
