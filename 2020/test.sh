@@ -1,3 +1,3 @@
 #!/bin/bash
-dotnet test --filter Day22
+dotnet test --filter Day23
 # dotnet test
