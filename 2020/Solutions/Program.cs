@@ -76,8 +76,11 @@ namespace Solutions
             //Console.WriteLine((new Day23()).Solve1(Day23.PUZZLE_INPUT, 100));
             //Console.WriteLine((new Day23()).Solve2(Day23.PUZZLE_INPUT, 10000000ul));
 
-            Console.WriteLine((new Day24()).Solve1(Day24.PUZZLE_INPUT));
+            //Console.WriteLine((new Day24()).Solve1(Day24.PUZZLE_INPUT));
             //Console.WriteLine((new Day24()).Solve2(Day24.PUZZLE_INPUT));
+
+            Console.WriteLine((new Day25()).Solve1(Day25.PUZZLE_INPUT));
+            //Console.WriteLine((new Day25()).Solve2(Day25.PUZZLE_INPUT));
         }
     }
 }
