@@ -14,6 +14,11 @@ namespace Solutions
             public override string ToString() => $"{Start}-{End}";
         }
 
+        public record Rule(string Name, Range[] Ranges)
+        {
+            public override string ToString() => $"'{Name}': [{string.Join(", ", (object[])Ranges)}]";
+        }
+
         public record Ticket(int[] Fields);
 
         public class Notes
@@ -22,13 +27,9 @@ namespace Solutions
              = new Regex(@"^(.+?): (\d+)-(\d+) or (\d+)-(\d+)$",
                 RegexOptions.Compiled | RegexOptions.IgnoreCase);
 
-            public Dictionary<string, Range[]> Rules { get; set; }
-                = new Dictionary<string, Range[]>();
-
-            public Ticket MyTicket { get; set; }
-
-            public List<Ticket> NearbyTickets { get; set; }
-                = new List<Ticket>();
+            public Rule[]   Rules         { get; private set; }
+            public Ticket   MyTicket      { get; private set; }
+            public Ticket[] NearbyTickets { get; private set; }
 
             public Notes(string[] notesStringsToParse)
             {
@@ -36,6 +37,7 @@ namespace Solutions
                 string line = null;
 
                 // parse rules
+                var rules = new List<Rule>();
                 for (; i < notesStringsToParse.Length; i++)
                 {
                     line = notesStringsToParse[i];
@@ -48,14 +50,16 @@ namespace Solutions
                     if (match.Success == false)
                         throw new FormatException($"Unable to parse rule line: '{line}'");
 
-                    Rules.Add(
-                        match.Groups[1].Value,
-                        new Range[]
-                        {
-                            new Range(int.Parse(match.Groups[2].Value), int.Parse(match.Groups[3].Value)),
-                            new Range(int.Parse(match.Groups[4].Value), int.Parse(match.Groups[5].Value))
-                        });
+                    rules.Add(
+                        new Rule(
+                            match.Groups[1].Value,
+                            new Range[]
+                            {
+                                new Range(int.Parse(match.Groups[2].Value), int.Parse(match.Groups[3].Value)),
+                                new Range(int.Parse(match.Groups[4].Value), int.Parse(match.Groups[5].Value))
+                            }));
                 }
+                Rules = rules.ToArray();
 
                 // parse my ticket
                 i += 2;
@@ -67,27 +71,121 @@ namespace Solutions
 
                 // parse nearby tickets
                 i += 3;
+                var nearbyTickets = new List<Ticket>();
                 for (; i < notesStringsToParse.Length; i++)
                 {
                     line = notesStringsToParse[i];
-                    NearbyTickets.Add(
+                    nearbyTickets.Add(
                         new Ticket(
                             line.Split(',')
                                 .Select(s => int.Parse(s))
                                 .ToArray()));
                 }
+                NearbyTickets = nearbyTickets.ToArray();
             }
+
+            public static bool IsFieldValidForRule(int ticketField, Range[] ruleRanges) =>
+                ruleRanges.Any(r => r.IsInside(ticketField));
+
+            public bool IsTicketFieldValid(int ticketField) =>
+                Rules.Any(rule => IsFieldValidForRule(ticketField, rule.Ranges));
+
+            public bool IsTicketValid(Ticket ticket) =>
+                ticket.Fields.All(f => IsTicketFieldValid(f));
         }
 
-        public UInt64 Solve(string[] notesStrings)
+        public UInt64 Solve1(string[] notesStrings)
         {
             var notes = new Notes(notesStrings);
             UInt64 result = 0;
 
             foreach (var ticket in notes.NearbyTickets)
             foreach (var field in ticket.Fields)
-                if (notes.Rules.Values.All(rules => rules.All(r => r.IsInside(field) == false)))
+                if (notes.IsTicketFieldValid(field) == false)
                     result += (UInt64)field;
+
+            return result;
+        }
+
+        public UInt64 Solve2(string[] notesStrings)
+        {
+            var notes = new Notes(notesStrings);
+
+            var fieldsCount = notes.MyTicket.Fields.Length;
+            var fieldsIndexesToRules = new Rule[fieldsCount][];
+            for (int i = 0; i < fieldsIndexesToRules.Length; i++)
+                fieldsIndexesToRules[i] = (Rule[])notes.Rules.Clone();
+
+            foreach (var ticket in notes.NearbyTickets)
+            {
+                if (notes.IsTicketValid(ticket) == false)
+                    continue;
+
+                for (int fi = 0; fi < fieldsCount; fi++)
+                for (int ri = 0; ri < fieldsIndexesToRules[fi].Length; ri++)
+                {
+                    var rule = fieldsIndexesToRules[fi][ri];
+                    if (rule == null)
+                        continue;
+
+                    if (Notes.IsFieldValidForRule(ticket.Fields[fi], rule.Ranges) == false)
+                        fieldsIndexesToRules[fi][ri] = null;
+                }
+            }
+
+            Rule lastRule   = null;
+            int  rulesCount = 0;
+            for (int i = 0; i < fieldsIndexesToRules.Length; i++)
+            {
+                lastRule   = null;
+                rulesCount = 0;
+                for (int ri = 0; ri < fieldsIndexesToRules[i].Length; ri++)
+                    if (fieldsIndexesToRules[i][ri] != null)
+                    {
+                        rulesCount += 1;
+                        if (rulesCount == 2)
+                            break;
+
+                        lastRule = fieldsIndexesToRules[i][ri];
+                    }
+
+                if (rulesCount != 1)
+                    continue;
+
+                bool didChange = false;
+                for (int j = 0; j < fieldsIndexesToRules.Length; j++)
+                    if (i != j)
+                        for (int ri = 0; ri < fieldsIndexesToRules[j].Length; ri++)
+                            if (fieldsIndexesToRules[j][ri] != null &&
+                                fieldsIndexesToRules[j][ri].Name == lastRule.Name)
+                            {
+                                didChange = true;
+                                fieldsIndexesToRules[j][ri] = null;
+                            }
+
+                if (didChange)
+                    i = -1;
+            }
+
+            //for (int i = 0; i < fieldsIndexesToRules.Length; i++)
+            //    fieldsIndexesToRules[i] = fieldsIndexesToRules[i]
+            //        .Where(r => r != null)
+            //        .ToArray();
+
+            //for (int i = 0; i < fieldsIndexesToRules.Length; i++)
+            //{
+            //    var rules = fieldsIndexesToRules[i];
+            //    Console.WriteLine($"[{i}] ({rules.Length}): {string.Join(" | ", (object[])rules)}");
+            //}
+
+            var fieldIndexToRule = new Rule[fieldsIndexesToRules.Length];
+            for (int i = 0; i < fieldsIndexesToRules.Length; i++)
+                fieldIndexToRule[i] = fieldsIndexesToRules[i].Single(r => r != null);
+
+            UInt64 result = 1ul;
+            for (int i = 0; i < fieldIndexToRule.Length; i++)
+                if (fieldIndexToRule[i].Name.StartsWith("departure"))
+                    result *= (UInt64)notes.MyTicket.Fields[i];
 
             return result;
         }
