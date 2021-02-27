@@ -117,10 +117,10 @@ namespace Solutions
         {
             private ref struct Mask
             {
-                public UInt64 And;
-                public UInt64 Or;
-                public int    FloatingBitsCount;
-                public int[]  FloatingBits;
+                public UInt64    And;
+                public UInt64    Or;
+                public int       FloatingBitsCount;
+                public Span<int> FloatingBits;
 
                 public Mask(int bits)
                 {
