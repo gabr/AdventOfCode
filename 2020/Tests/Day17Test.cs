@@ -35,19 +35,19 @@ namespace Solutions
         [TestMethod]
         public void Test2FromExample()
         {
-            //var day = new Day17();
-            //Assert.AreEqual(
-            //    ,
-            //    day.Solve2(TEST_INPUT));
+            var day = new Day17();
+            Assert.AreEqual(
+                848,
+                day.Solve2(TEST_INPUT));
         }
 
         [TestMethod]
         public void Test2PuzzleInput()
         {
-            //var day = new Day17();
-            //Assert.AreEqual(
-            //    ,
-            //    day.Solve2(Day17.PUZZLE_INPUT));
+            var day = new Day17();
+            Assert.AreEqual(
+                2136,
+                day.Solve2(Day17.PUZZLE_INPUT));
         }
 
     }

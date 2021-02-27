@@ -7,44 +7,62 @@ namespace Solutions
 {
     public class Day17
     {
-        public record Cube(int X, int Y, int Z)
+        public record Cube(int[] Coordinates)
         {
-            public Cube[] GetNeighbors() => new Cube[]
+            public Cube[] GetNeighbors()
             {
-                new Cube(X-1, Y,   Z),
-                new Cube(X-1, Y,   Z+1),
-                new Cube(X-1, Y,   Z-1),
-                new Cube(X-1, Y+1, Z),
-                new Cube(X-1, Y+1, Z+1),
-                new Cube(X-1, Y+1, Z-1),
-                new Cube(X-1, Y-1, Z),
-                new Cube(X-1, Y-1, Z+1),
-                new Cube(X-1, Y-1, Z-1),
+                var neighbors = new Cube[(int)Math.Pow(3, Coordinates.Length) - 1];
+                var offsets = new int[Coordinates.Length];
 
-                new Cube(X+1, Y,   Z),
-                new Cube(X+1, Y,   Z+1),
-                new Cube(X+1, Y,   Z-1),
-                new Cube(X+1, Y+1, Z),
-                new Cube(X+1, Y+1, Z+1),
-                new Cube(X+1, Y+1, Z-1),
-                new Cube(X+1, Y-1, Z),
-                new Cube(X+1, Y-1, Z+1),
-                new Cube(X+1, Y-1, Z-1),
+                for (int i = 0; i < offsets.Length; i++)
+                    offsets[i] = -1;
 
-                new Cube(X, Y,   Z+1),
-                new Cube(X, Y,   Z-1),
-                new Cube(X, Y+1, Z),
-                new Cube(X, Y+1, Z+1),
-                new Cube(X, Y+1, Z-1),
-                new Cube(X, Y-1, Z),
-                new Cube(X, Y-1, Z+1),
-                new Cube(X, Y-1, Z-1),
-            };
+                for (int i = 0; i < neighbors.Length; i++)
+                {
+                    // advance offset
+                    for (int oi = 0; oi < offsets.Length; oi++)
+                    {
+                        if (offsets[oi] == 1)
+                        {
+                            offsets[oi] = -1;
+                        }
+                        else
+                        {
+                            offsets[oi] += 1;
+                            break;
+                        }
+                    }
 
-            public override string ToString() => $"{X},{Y},{Z}";
+                    // if got only zeros skip
+                    bool allZeros = true;
+                    for (int oi = 0; oi < offsets.Length; oi++)
+                        if (offsets[oi] != 0)
+                        {
+                            allZeros = false;
+                            break;
+                        }
+
+                    if (allZeros)
+                    {
+                        i--;
+                        continue;
+                    }
+
+                    // produce neighbor
+                    var newCubeCoordinates = new int[Coordinates.Length];
+                    for (int oi = 0; oi < offsets.Length; oi++)
+                        newCubeCoordinates[oi] = Coordinates[oi] + offsets[oi];
+
+                    neighbors[i] = new Cube(newCubeCoordinates);
+                }
+
+                return neighbors;
+            }
+
+            public override string ToString() => string.Join(",", Coordinates);
         }
 
-        public Dictionary<string, Cube> ParseInitialState(string[] initialState)
+        public Dictionary<string, Cube> ParseInitialState(string[] initialState, int desiredDimension)
         {
             var activeCubes = new Dictionary<string, Cube>();
 
@@ -59,7 +77,15 @@ namespace Solutions
                 {
                     if (cubeState == '#')
                     {
-                        var cube = new Cube(x, y, z);
+                        var coordinates = new int[desiredDimension];
+                        for (int i = 3; i < coordinates.Length; i++)
+                            coordinates[i] = 0;
+
+                        coordinates[0] = x;
+                        coordinates[1] = y;
+                        coordinates[2] = z;
+
+                        var cube = new Cube(coordinates);
                         activeCubes[cube.ToString()] = cube;
                     }
 
@@ -111,9 +137,9 @@ namespace Solutions
             current = tmp;
         }
 
-        public int Solve1(string[] initialState)
+        public int Solve(string[] initialState, int desiredDimension)
         {
-            var activeCubes = ParseInitialState(initialState);
+            var activeCubes = ParseInitialState(initialState, desiredDimension);
             var buffer      = new Dictionary<string, Cube>();
 
             for (int i = 0; i < 6; i++)
@@ -121,6 +147,9 @@ namespace Solutions
 
             return activeCubes.Count;
         }
+
+        public int Solve1(string[] initialState) => Solve(initialState, 3);
+        public int Solve2(string[] initialState) => Solve(initialState, 4);
 
         public static readonly string[] PUZZLE_INPUT =
         {
