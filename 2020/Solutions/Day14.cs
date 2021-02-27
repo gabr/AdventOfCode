@@ -1,98 +1,267 @@
 using System;
 using System.Linq;
+using System.Diagnostics;
 using System.Collections.Generic;
 
 namespace Solutions
 {
     public class Day14
     {
-        private void ReadMask(
-                ReadOnlySpan<char> mask,
-            out UInt64             maskAnd,
-            out UInt64             maskOr)
+        private abstract class DecoderChip
         {
-            if (mask.Length != 36)
-                throw new ArgumentException($"Given mask length {mask.Length} is not 36");
+            protected enum InstructionType { Mask, Mem };
 
-            maskAnd = 0b_1111__1111_1111__1111_1111__1111_1111__1111_1111;
-            maskOr  = 0b_0000__0000_0000__0000_0000__0000_0000__0000_0000;
+            protected const int _bits = 36;
 
-            for (int i = 0; i < mask.Length; i++)
+            protected static InstructionType GetInstructionType(string instruction) =>
+                instruction[1] == 'a' ? InstructionType.Mask : InstructionType.Mem;
+
+            protected static void ParseMemInstruction(
+                    string instruction,
+                out UInt64 address,
+                out UInt64 value
+            ) {
+                var chars = instruction.AsSpan();
+
+                int indexOfRightBracket = chars.IndexOf(']');
+                address = UInt64.Parse(chars.Slice(4, indexOfRightBracket - 4));
+                value   = UInt64.Parse(chars.Slice(indexOfRightBracket + 4));
+            }
+
+            protected static ReadOnlySpan<char> ParseMaskInstruction(string instruction) =>
+                instruction.AsSpan(7);
+
+            public abstract void ExecuteInstructions(
+                string[]           instructions,
+                Dictionary<UInt64, UInt64> memory);
+        }
+
+        private class DecoderChipV1 : DecoderChip
+        {
+            protected const UInt64 _valueMask = (1ul << _bits) - 1ul; // 00011111111...1
+
+            private ref struct Mask
             {
-                int bitPosition = (mask.Length - i) - 1;
+                public UInt64 And;
+                public UInt64 Or;
+            }
 
-                switch (mask[i])
+            private static void ReadMask(
+                    ReadOnlySpan<char> maskChars,
+                out Mask               mask
+            ) {
+                if (maskChars.Length != _bits)
+                    throw new ArgumentException($"Given mask length {maskChars.Length} is not 36");
+
+                mask.And = _valueMask;
+                mask.Or  = 0b_0000__0000_0000__0000_0000__0000_0000__0000_0000;
+
+                for (int i = 0; i < maskChars.Length; i++)
                 {
-                    case '0':
-                        maskAnd &= ~(1ul << bitPosition);
-                        break;
+                    int bitWeight = (maskChars.Length - i) - 1;
 
-                    case '1':
-                        maskOr |= 1ul << bitPosition;
-                        break;
+                    switch (maskChars[i])
+                    {
+                        case '0':
+                            mask.And &= ~(1ul << bitWeight);
+                            break;
+
+                        case '1':
+                            mask.Or |= 1ul << bitWeight;
+                            break;
+                    }
+                }
+            }
+
+            private static void ModifyMemory(
+                   Dictionary<UInt64, UInt64> memory,
+                   UInt64                     address,
+                   UInt64                     value,
+                in Mask                       mask
+            ) {
+                memory[address] = (((value & mask.And) | mask.Or) & _valueMask);
+            }
+
+            public override void ExecuteInstructions(
+                string[]                   instructions,
+                Dictionary<UInt64, UInt64> memory
+            ) {
+                // initialize masks
+                Mask mask;
+                ReadMask("XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX", out mask);
+
+                UInt64 address = 0;
+                UInt64 value   = 0;
+
+                foreach (var instruction in instructions)
+                {
+                    switch (GetInstructionType(instruction))
+                    {
+                        case InstructionType.Mask:
+                            ReadMask(ParseMaskInstruction(instruction), out mask);
+                            break;
+
+                        case InstructionType.Mem:
+                            ParseMemInstruction(instruction, out address, out value);
+                            ModifyMemory(memory, address, value, in mask);
+                            break;
+
+                        default:
+                            throw new NotImplementedException($"Not implemented instruction: '{instruction}'");
+                    }
                 }
             }
         }
 
-        private void ModifyMemory(
-            Dictionary<UInt64, UInt64> memory,
-            UInt64                     address,
-            UInt64                     value,
-            UInt64                     valueMask,
-            UInt64                     maskAnd,
-            UInt64                     maskOr)
+        private class DecoderChipV2 : DecoderChip
         {
-            memory[address] = (((value & maskAnd) | maskOr) & valueMask);
-        }
-
-        private void ExecuteInstructions(
-            string[]           instructions,
-            Dictionary<UInt64, UInt64> memory,
-            UInt64             valueMask)
-        {
-            // initialize masks
-            UInt64 maskAnd;
-            UInt64 maskOr;
-            ReadMask("XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX", out maskAnd, out maskOr);
-
-            foreach (var instruction in instructions)
+            private ref struct Mask
             {
-                switch (instruction[1])
+                public UInt64 And;
+                public UInt64 Or;
+                public int    FloatingBitsCount;
+                public int[]  FloatingBits;
+
+                public Mask(int bits)
                 {
-                    case 'a' : // mask
-                        ReadMask(instruction.AsSpan(7), out maskAnd, out maskOr);
+                    And               = (1ul << _bits) - 1ul; // 00011111111...1
+                    Or                = 0ul;
+                    FloatingBitsCount = 0;
+                    FloatingBits      = new int[bits];
+                }
+
+                public void AddFloatingBit(int bitWeight)
+                {
+                    Debug.Assert(FloatingBitsCount < FloatingBits.Length);
+                    FloatingBits[FloatingBitsCount++] = bitWeight;
+                }
+
+                public void SaveFloatingBitsAsAndMask()
+                {
+                    for (int i = 0; i < FloatingBitsCount; i++)
+                        And &= ~(1ul << FloatingBits[i]);
+                }
+
+                public void Clear()
+                {
+                    And               = (1ul << _bits) - 1ul; // 00011111111...1
+                    Or                = 0ul;
+                    FloatingBitsCount = 0;
+                }
+            }
+
+            private static void ModifyMemory(
+                   Dictionary<UInt64, UInt64> memory,
+                   UInt64                     address,
+                   UInt64                     value,
+                in Mask                       mask
+            ) {
+                address &= mask.And;
+                address |= mask.Or;
+
+                void ModifyAddress(UInt64 a, in Mask m, int floatingBitIndex = 0)
+                {
+                    if (floatingBitIndex == m.FloatingBitsCount)
+                    {
+                        memory[a] = value;
+                    }
+                    else
+                    {
+                        ModifyAddress(a, in m, floatingBitIndex + 1);
+                        ModifyAddress(a | 1ul << m.FloatingBits[floatingBitIndex], in m, floatingBitIndex + 1);
+                    }
+                }
+
+                ModifyAddress(address, in mask);
+            }
+
+            private static void ReadMask(
+                    ReadOnlySpan<char> maskChars,
+                ref Mask               mask
+            ) {
+                if (maskChars.Length != _bits)
+                    throw new ArgumentException($"Given mask length {maskChars.Length} is not 36");
+
+                mask.Clear();
+
+                for (int i = 0; i < maskChars.Length; i++)
+                {
+                    int bitWeight = (maskChars.Length - i) - 1;
+
+                    switch (maskChars[i])
+                    {
+                        case '1':
+                            mask.Or |= 1ul << bitWeight;
+                            break;
+
+                        case 'X':
+                            mask.AddFloatingBit(bitWeight);
+                            break;
+                    }
+                }
+
+                mask.SaveFloatingBitsAsAndMask();
+            }
+
+            public override void ExecuteInstructions(
+                string[]           instructions,
+                Dictionary<UInt64, UInt64> memory
+            ) {
+                // skip instructions until first mask instruction
+                int instructionIndex = 0;
+                for (; instructionIndex < instructions.Length; instructionIndex++)
+                    if (GetInstructionType(instructions[instructionIndex]) == InstructionType.Mask)
                         break;
 
-                    case 'e' : // mem
-                        var chars = instruction.AsSpan();
+                if (instructionIndex >= instructions.Length)
+                    return;
 
-                        int indexOfRightBracket = chars.IndexOf(']');
-                        UInt64 address = UInt64.Parse(chars.Slice(4, indexOfRightBracket - 4));
-                        UInt64 value   = UInt64.Parse(chars.Slice(indexOfRightBracket + 4));
+                var mask = new Mask(_bits);
 
-                        ModifyMemory(memory, address, value, valueMask, maskAnd, maskOr);
-                        break;
+                UInt64 address = 0;
+                UInt64 value   = 0;
 
-                    default:
-                        throw new NotImplementedException($"Not implemented instruction: '{instruction}'");
+                for (; instructionIndex < instructions.Length; instructionIndex++)
+                {
+                    string instruction = instructions[instructionIndex];
+
+                    switch (GetInstructionType(instruction))
+                    {
+                        case InstructionType.Mask:
+                            ReadMask(ParseMaskInstruction(instruction), ref mask);
+                            break;
+
+                        case InstructionType.Mem:
+                            ParseMemInstruction(instruction, out address, out value);
+                            ModifyMemory(memory, address, value, in mask);
+                            break;
+
+                        default:
+                            throw new NotImplementedException($"Not implemented instruction: '{instruction}'");
+                    }
                 }
             }
         }
 
-        public UInt64 Solve1(string[] instructions)
+
+        private UInt64 Solve(string[] instructions, DecoderChip decoderChip)
         {
-            const int bits = 36;
-            const UInt64 valueMask = (1ul << bits) - 1ul; // 11111111...
             var memory = new Dictionary<UInt64, UInt64>();
 
-            ExecuteInstructions(instructions, memory, valueMask);
+            decoderChip.ExecuteInstructions(instructions, memory);
+
+            // "(Do not truncate the sum to 36 bits.)"
 
             UInt64 sum = 0;
             foreach (var value in memory.Values)
                 sum += value;
 
             return sum;
+
         }
+
+        public UInt64 Solve1(string[] instructions) => Solve(instructions, new DecoderChipV1());
+        public UInt64 Solve2(string[] instructions) => Solve(instructions, new DecoderChipV2());
 
         public static readonly string[] PUZZLE_INPUT =
         {

@@ -6,7 +6,7 @@ namespace Solutions
     [TestClass]
     public class Day14Tests
     {
-        public static readonly string[] TEST_INPUT =
+        public static readonly string[] TEST_INPUT_1 =
         {
             "mask = XXXXXXXXXXXXXXXXXXXXXXXXXXXXX1XXXX0X",
             "mem[8] = 11",
@@ -20,7 +20,7 @@ namespace Solutions
             var day = new Day14();
             Assert.AreEqual(
                 165ul,
-                day.Solve1(TEST_INPUT));
+                day.Solve1(TEST_INPUT_1));
         }
 
 
@@ -33,22 +33,31 @@ namespace Solutions
                 day.Solve1(Day14.PUZZLE_INPUT));
         }
 
+
+        public static readonly string[] TEST_INPUT_2 =
+        {
+            "mask = 000000000000000000000000000000X1001X",
+            "mem[42] = 100",
+            "mask = 00000000000000000000000000000000X0XX",
+            "mem[26] = 1",
+        };
+
         [TestMethod]
         public void Test2FromExample()
         {
-            //var day = new Day14();
-            //Assert.AreEqual(
-            //    1068781ul,
-            //    day.Solve2(TEST_INPUT));
+            var day = new Day14();
+            Assert.AreEqual(
+                208ul,
+                day.Solve2(TEST_INPUT_2));
         }
 
         [TestMethod]
         public void Test2PuzzleInput()
         {
-            //var day = new Day14();
-            //Assert.AreEqual(
-            //    ,
-            //    day.Solve2(Day14.PUZZLE_INPUT));
+            var day = new Day14();
+            Assert.AreEqual(
+                4335927555692ul,
+                day.Solve2(Day14.PUZZLE_INPUT));
         }
 
     }
