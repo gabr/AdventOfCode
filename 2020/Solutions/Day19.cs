@@ -68,6 +68,29 @@ namespace Solutions
             public override string ToString() => $"{Id}: \"{Char}\"";
         }
 
+        public class Step
+        {
+            public IdsRule Rule;
+            public int     IdsSetIndex;
+            public int     IdIndex;
+
+            public Step(IdsRule rule)
+            {
+                Rule        = rule;
+                IdsSetIndex = 0;
+                IdIndex     = -1;
+            }
+
+            public Step(Step step)
+            {
+                Rule        = step.Rule;
+                IdsSetIndex = step.IdsSetIndex;
+                IdIndex     = step.IdIndex;
+            }
+
+            public override string ToString() => $"[{IdsSetIndex}][{IdIndex}]: {Rule}";
+        }
+
         public void ParseReceivedMessages(string[] receivedMessages, out int messagesStartIndex, in Rule[] rules)
         {
             messagesStartIndex = 0;
@@ -146,6 +169,120 @@ namespace Solutions
             return IsValidForRule(0, true);
         }
 
+        public bool IsValidMessage2(string message, Rule[] rules)
+        {
+            var charsStepsStacks = new Stack<Step>[message.Length];
+
+            charsStepsStacks[0] = new Stack<Step>();
+            charsStepsStacks[0].Push(new Step((IdsRule)rules[0]));
+
+            Stack<Step> CloneStack(Stack<Step> original)
+            {
+                var arr = new Step[original.Count];
+                original.CopyTo(arr, 0);
+                Array.Reverse(arr);
+
+                return new Stack<Step>(arr.Select(s => new Step(s)));
+            }
+
+            CharRule GetNextCharRule(Stack<Step> stepsStack)
+            {
+                //Console.WriteLine($"steps stack: [{string.Join(" ::: ", stepsStack)}]");
+
+                while (stepsStack.Count > 0)
+                {
+                    var step = stepsStack.Peek();
+
+                    step.IdIndex += 1;
+                    if (step.IdIndex >= step.Rule.Ids[step.IdsSetIndex].Length)
+                    {
+                        step.IdIndex = 0;
+                        step.IdsSetIndex += 1;
+                    }
+
+                    //Console.WriteLine($"Step: {step}");
+
+                    if (step.IdsSetIndex >= step.Rule.Ids.Length)
+                    {
+                        stepsStack.Pop();
+                        continue;
+                    }
+
+                    var nextRule = rules[step.Rule.Ids[step.IdsSetIndex][step.IdIndex]];
+                    if (nextRule is CharRule)
+                        return (CharRule)nextRule;
+
+                    stepsStack.Push(new Step((IdsRule)nextRule));
+                }
+
+                return null;
+            }
+
+            void PopFromStackStepsThatAreAtTheLastId(Stack<Step> stepsStack)
+            {
+                while (stepsStack.Count > 0)
+                {
+                    var step = stepsStack.Peek();
+                    //Console.WriteLine($"Trying to pop step: {step}");
+                    if (step.IdIndex +1 != step.Rule.Ids[step.IdsSetIndex].Length)
+                        break;
+
+                    stepsStack.Pop();
+                }
+            }
+
+            bool AreAllStepsOnTheRulesLastIds(Stack<Step> stepsStack)
+            {
+                foreach (var step in stepsStack)
+                    if (step.IdIndex +1 != step.Rule.Ids[step.IdsSetIndex].Length)
+                        return false;
+
+                return true;
+            }
+
+            int characterIndex = 0;
+            while (true)
+            {
+                //Console.WriteLine($"\n[{characterIndex}]: '{message[characterIndex]}'");
+
+                var charStack = charsStepsStacks[characterIndex];
+                var charRule = GetNextCharRule(charStack);
+
+                if (charRule == null)
+                {
+                    //Console.WriteLine($"charRule == null, characterIndex: {characterIndex}");
+                    if (characterIndex == 0)
+                        return false;
+
+                    characterIndex -= 1;
+                    continue;
+                }
+
+                //Console.WriteLine($"{charRule.Char} ?= {message[characterIndex]}");
+
+                if (charRule.Char != message[characterIndex])
+                    continue;
+
+                bool isLast = (characterIndex + 1) == message.Length;
+
+                if (isLast == false)
+                {
+                    charsStepsStacks[characterIndex+1] = CloneStack(charStack);
+                    PopFromStackStepsThatAreAtTheLastId(charsStepsStacks[characterIndex+1]);
+                    characterIndex += 1;
+                    continue;
+                }
+
+                if (AreAllStepsOnTheRulesLastIds(charStack) == false)
+                {
+                    characterIndex -= 1;
+                    continue;
+                }
+
+                return true;
+            }
+        }
+
         public int Solve1(string[] receivedMessages)
         {
             int messagesMatchingRulesCount = 0;
@@ -174,6 +311,26 @@ namespace Solutions
         {
             int messagesMatchingRulesCount = 0;
 
+            /*
+                a 0 1
+                a 0 3 1
+                a 0 3 3 1
+                b 0 2
+             */
+
+            receivedMessages = new string[]
+            {
+                "0: 1 3 2",
+                "1: \"a\"",
+                "2: \"b\"",
+                "3: 1 | 1 3",
+                "",
+                "aab",
+                "aaab",
+                "aaaab",
+                "aaaaa"
+            };
+
             int messagesStartIndex = 0;
             var rules = new Rule[1024];
 
@@ -189,11 +346,12 @@ namespace Solutions
             //    if (rule != null)
             //        Console.WriteLine(rule);
 
+
             for (int i = messagesStartIndex; i < receivedMessages.Length; i++)
             {
                 string message = receivedMessages[i];
-                bool isValid = IsValidMessage(message, rules);
-                //Console.WriteLine($"{(isValid ? "OK " : "NOK")} {message}");
+                bool isValid = IsValidMessage2(message, rules);
+                Console.WriteLine($"{(isValid ? "OK " : "NOK")} {message}");
                 if (isValid) messagesMatchingRulesCount += 1;
             }
 

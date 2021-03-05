@@ -99,14 +99,24 @@ namespace Solutions
             }));
         }
 
+        /*
+        [TestMethod]
+        public void Test2PuzzleInputWrongResults()
+        {
+            var day = new Day19();
+            Assert.AreNotEqual(160, day.Solve2(Day19.PUZZLE_INPUT));
+            Assert.AreNotEqual(211, day.Solve2(Day19.PUZZLE_INPUT));
+        }
+
         [TestMethod]
         public void Test2PuzzleInput()
         {
-            //var day = new Day19();
-            //Assert.AreEqual(
-            //    ,
-            //    day.Solve2(Day19.PUZZLE_INPUT));
+            var day = new Day19();
+            Assert.AreEqual(
+                ,
+                day.Solve2(Day19.PUZZLE_INPUT));
         }
+        */
 
     }
 }

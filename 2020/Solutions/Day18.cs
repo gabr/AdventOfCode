@@ -30,7 +30,7 @@ namespace Solutions
             return digits;
         }
 
-        public UInt64 Calculate(ref ReadOnlySpan<char> equation)
+        public UInt64 CalculateWithoutOperatorsPrecedense(ref ReadOnlySpan<char> equation)
         {
             UInt64 left      = 0ul;
             UInt64 right     = 0ul;
@@ -42,7 +42,7 @@ namespace Solutions
             if (equation[0] == '(')
             {
                 equation = equation.Slice(1);
-                left = Calculate(ref equation);
+                left = CalculateWithoutOperatorsPrecedense(ref equation);
             }
             else
             {
@@ -71,7 +71,7 @@ namespace Solutions
                 if (equation[0] == '(')
                 {
                     equation = equation.Slice(1);
-                    right = Calculate(ref equation);
+                    right = CalculateWithoutOperatorsPrecedense(ref equation);
                 }
                 else
                 {
@@ -88,6 +88,131 @@ namespace Solutions
             }
         }
 
+        public UInt64 CalculateRPN(Queue<object> rpn)
+        {
+            var workStack = new Stack<UInt64>(rpn.Count);
+
+            while (rpn.Count > 0)
+            {
+                switch (rpn.Dequeue())
+                {
+                    case UInt64 i:
+                        workStack.Push(i);
+                        break;
+
+                    case char o:
+                        var left  = workStack.Pop();
+                        var right = workStack.Pop();
+
+                        workStack.Push(
+                            o == '*' ? left * right :
+                            o == '+' ? left + right :
+                                throw new NotImplementedException($"Unknown operation: '{o}'"));
+                        break;
+                }
+            }
+
+            return workStack.Pop();
+        }
+
+        public Queue<object> ToRPN(ReadOnlySpan<char> equation, char[] operatorsPrecedense)
+        {
+            var result = new Queue<object>(equation.Length);
+            var operators = new Stack<char>(equation.Length);
+
+            bool isOperator(char c)
+            {
+                for (int i = 0; i < operatorsPrecedense.Length; i++)
+                    if (operatorsPrecedense[i] == c)
+                        return true;
+
+                return false;
+            }
+
+            bool isLeftOperatorOfLessPrecedense(char l, char r)
+            {
+                for (int i = 0; i < operatorsPrecedense.Length; i++)
+                {
+                    char o = operatorsPrecedense[i];
+
+                    if (o == l)
+                        return true;
+
+                    if (o == r)
+                        return false;
+                }
+
+                throw new Exception($"Operators: '{l}', '{r}' not found in operators precedense array: [{string.Join(", ", operatorsPrecedense)}]");
+            }
+
+            while (equation.Length > 0)
+            {
+                RemoveSpaces(ref equation);
+
+                if (equation[0] == '(')
+                {
+                    operators.Push(equation[0]);
+                    equation = equation.Slice(1);
+                    continue;
+                }
+
+                if (equation[0] == ')')
+                {
+                    equation = equation.Slice(1);
+
+                    while (operators.Count > 0 && operators.Peek() != '(')
+                        result.Enqueue(operators.Pop());
+
+                    // remove '('
+                    operators.Pop();
+
+                    continue;
+                }
+
+                if (isOperator(equation[0]))
+                {
+                    char o1 = equation[0];
+                    equation = equation.Slice(1);
+
+                    while (operators.Count > 0)
+                    {
+                        char o2 = operators.Peek();
+
+                        if (o2 == '(')
+                            break;
+
+                        if (isLeftOperatorOfLessPrecedense(o1, o2) == false)
+                            break;
+
+                        operators.Pop();
+                        result.Enqueue(o2);
+                    }
+
+                    operators.Push(o1);
+                    continue;
+                }
+
+                var digits = ExtractDigits(ref equation);
+                if (digits.Length > 0)
+                {
+                    result.Enqueue(UInt64.Parse(digits));
+                    continue;
+                }
+            }
+
+            while (operators.Count > 0)
+                result.Enqueue(operators.Pop());
+
+            return result;
+        }
+
+        public UInt64 CalculateWithOperatorsPrecedense(in ReadOnlySpan<char> equation)
+        {
+            var rpn = ToRPN(equation, new [] { '*', '+' });
+            return CalculateRPN(rpn);
+        }
+
+
         public UInt64 Solve1(string[] equations)
         {
             UInt64 result = 0ul;
@@ -95,7 +220,20 @@ namespace Solutions
             foreach (var equation in equations)
             {
                 var equationChars = equation.AsSpan();
-                result += Calculate(ref equationChars);
+                result += CalculateWithoutOperatorsPrecedense(ref equationChars);
+            }
+
+            return result;
+        }
+
+        public UInt64 Solve2(string[] equations)
+        {
+            UInt64 result = 0ul;
+
+            foreach (var equation in equations)
+            {
+                var equationChars = equation.AsSpan();
+                result += CalculateWithOperatorsPrecedense(in equationChars);
             }
 
             return result;
