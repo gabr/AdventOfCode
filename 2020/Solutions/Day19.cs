@@ -120,7 +120,7 @@ namespace Solutions
                     var charRule = (CharRule)rule;
                     bool isValid = message[charIndex] == charRule.Char;
 
-                    //Console.WriteLine($"[{charIndex}]{message[charIndex]} == [{string.Join(" ", rulesStack)}]{charRule.Char} {(isValid ? "OK" : "NOK")}");
+                    Console.WriteLine($"[{charIndex}]{message[charIndex]} == [{string.Join(" ", rulesStack)}]{charRule.Char} {(isValid ? "OK" : "NOK")}");
                     if (isValid)
                     {
                         charIndex += 1;
@@ -169,6 +169,11 @@ namespace Solutions
             return IsValidForRule(0, true);
         }
 
+        public void Log(string message)
+        {
+            //Console.WriteLine(message);
+        }
+
         public bool IsValidMessage2(string message, Rule[] rules)
         {
             var charsStepsStacks = new Stack<Step>[message.Length];
@@ -187,7 +192,7 @@ namespace Solutions
 
             CharRule GetNextCharRule(Stack<Step> stepsStack)
             {
-                //Console.WriteLine($"steps stack: [{string.Join(" ::: ", stepsStack)}]");
+                Log($"steps stack: [{string.Join(" ::: ", stepsStack)}]");
 
                 while (stepsStack.Count > 0)
                 {
@@ -200,7 +205,7 @@ namespace Solutions
                         step.IdsSetIndex += 1;
                     }
 
-                    //Console.WriteLine($"Step: {step}");
+                    Log($"Step: {step}");
 
                     if (step.IdsSetIndex >= step.Rule.Ids.Length)
                     {
@@ -223,10 +228,11 @@ namespace Solutions
                 while (stepsStack.Count > 0)
                 {
                     var step = stepsStack.Peek();
-                    //Console.WriteLine($"Trying to pop step: {step}");
+                    Log($"Trying to pop step: {step}");
                     if (step.IdIndex +1 != step.Rule.Ids[step.IdsSetIndex].Length)
                         break;
 
+                    Log($"Popped step: {step}");
                     stepsStack.Pop();
                 }
             }
@@ -240,30 +246,44 @@ namespace Solutions
                 return true;
             }
 
+            const int limitOfLoops = 1000000000;
+            int loopsCount = 0;
+
             int characterIndex = 0;
             while (true)
             {
-                //Console.WriteLine($"\n[{characterIndex}]: '{message[characterIndex]}'");
+                loopsCount += 1;
+                if (loopsCount > limitOfLoops)
+                {
+                    Console.Write("FAIL");
+                    return false;
+                }
+
+                bool isLast = (characterIndex + 1) == message.Length;
+
+                Log($"\n[{characterIndex}]: '{message[characterIndex]}' {(isLast ? "last" : "")}");
 
                 var charStack = charsStepsStacks[characterIndex];
-                var charRule = GetNextCharRule(charStack);
+                var charRule  = GetNextCharRule(charStack);
 
                 if (charRule == null)
                 {
-                    //Console.WriteLine($"charRule == null, characterIndex: {characterIndex}");
+                    Log($"charRule == null, characterIndex: {characterIndex}");
                     if (characterIndex == 0)
                         return false;
 
+                    if (isLast)
+                        return false;
+
                     characterIndex -= 1;
+                    PopFromStackStepsThatAreAtTheLastId(charsStepsStacks[characterIndex]);
                     continue;
                 }
 
-                //Console.WriteLine($"{charRule.Char} ?= {message[characterIndex]}");
+                Log($"{charRule.Char} ?= {message[characterIndex]}");
 
                 if (charRule.Char != message[characterIndex])
                     continue;
-
-                bool isLast = (characterIndex + 1) == message.Length;
 
                 if (isLast == false)
                 {
@@ -276,6 +296,7 @@ namespace Solutions
                 if (AreAllStepsOnTheRulesLastIds(charStack) == false)
                 {
                     characterIndex -= 1;
+                    PopFromStackStepsThatAreAtTheLastId(charsStepsStacks[characterIndex]);
                     continue;
                 }
 
@@ -311,24 +332,101 @@ namespace Solutions
         {
             int messagesMatchingRulesCount = 0;
 
+            //receivedMessages = new string[]
+            //{
+            //    "0: 1 3 2",
+            //    "1: \"a\"",
+            //    "2: \"b\"",
+            //    "3: 1 | 1 3",
+            //    "",
+            //    "aab",
+            //    "aaab",
+            //    "aaaab",
+            //    "aaaaa"
+            //};
+
+            //receivedMessages = new string[]
+            //{
+            //    "0: 1 3 2",
+            //    "1: \"a\"",
+            //    "2: \"b\"",
+            //    "3: 1 2 | 1 3 2",
+            //    "",
+            //    "aabb",
+            //    "aaabbb",
+            //    "aaabbbb",
+            //    "aaaabbb",
+            //
+            //};
+
             /*
-                a 0 1
-                a 0 3 1
-                a 0 3 3 1
-                b 0 2
+                OK  abbbbbabbbaaaababbaabbbbabababbbabbbbbbabaaaa
+                OK  bbabbbbaabaabba
+                NOK babbbbaabbbbbabbbbbbaabaaabaaa
+                OK  aaabbbbbbaaaabaababaabababbabaaabbababababaaa
+                NOK bbbbbbbaaaabbbbaaabbabaaa
+                NOK bbbababbbbaaaaaaaabbababaaababaabab
+                NOK ababaaaaaabaaab
+                OK  ababaaaaabbbaba
+                OK  baabbaaaabbaaaababbaababb
+                OK  abbbbabbbbaaaababbbbbbaaaababb
+                OK  aaaaabbaabaaaaababaa
+                NOK aaaabbaaaabbaaa
+                NOK aaaabbaabbaaaaaaabbbabbbaaabbaabaaa
+                NOK babaaabbbaaabaababbaabababaaab
+                OK  aabbbbbaabbbaaaaaabbbbbababaaaaabbaaabba
              */
 
             receivedMessages = new string[]
             {
-                "0: 1 3 2",
+                "0: 8 11",
                 "1: \"a\"",
-                "2: \"b\"",
-                "3: 1 | 1 3",
-                "",
-                "aab",
-                "aaab",
-                "aaaab",
-                "aaaaa"
+                "2: 1 24 | 14 4",
+                "3: 5 14 | 16 1",
+                "4: 1 1",
+                "5: 1 14 | 15 1",
+                "6: 14 14 | 1 14",
+                "7: 14 5 | 1 21",
+                "8: 42",
+                "9: 14 27 | 1 26",
+                "10: 23 14 | 28 1",
+                "11: 42 31",
+                "12: 24 14 | 19 1",
+                "13: 14 3 | 1 12",
+                "14: \"b\"",
+                "15: 1 | 14",
+                "16: 15 1 | 14 14",
+                "17: 14 2 | 1 7",
+                "18: 15 15",
+                "19: 14 1 | 14 14",
+                "20: 14 14 | 1 15",
+                "21: 14 1 | 1 14",
+                "22: 14 14",
+                "23: 25 1 | 22 14",
+                "24: 14 1",
+                "25: 1 1 | 1 14",
+                "26: 14 22 | 1 20",
+                "27: 1 6 | 14 18",
+                "28: 16 1",
+                "31: 14 17 | 1 13",
+                "42: 9 14 | 10 1",
+                 "",
+
+                "abbbbbabbbaaaababbaabbbbabababbbabbbbbbabaaaa",
+                "bbabbbbaabaabba",
+                "babbbbaabbbbbabbbbbbaabaaabaaa",
+                "aaabbbbbbaaaabaababaabababbabaaabbababababaaa",
+                "bbbbbbbaaaabbbbaaabbabaaa",
+                "bbbababbbbaaaaaaaabbababaaababaabab",
+                "ababaaaaaabaaab",
+                "ababaaaaabbbaba",
+                "baabbaaaabbaaaababbaababb",
+                "abbbbabbbbaaaababbbbbbaaaababb",
+                "aaaaabbaabaaaaababaa",
+                "aaaabbaaaabbaaa",
+                "aaaabbaabbaaaaaaabbbabbbaaabbaabaaa",
+                "babaaabbbaaabaababbaabababaaab",
+                "aabbbbbaabbbaaaaaabbbbbababaaaaabbaaabba",
             };
 
             int messagesStartIndex = 0;
