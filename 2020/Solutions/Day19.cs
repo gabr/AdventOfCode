@@ -7,7 +7,6 @@ namespace Solutions
 {
     public class Day19
     {
-
         public class Rule
         {
             public int Id { get; private set; }
@@ -171,11 +170,18 @@ namespace Solutions
 
         public void Log(string message)
         {
-            //Console.WriteLine(message);
+            Console.WriteLine(message);
         }
 
         public bool IsValidMessage2(string message, Rule[] rules)
         {
+            if (message.Length == 0)
+                return rules.Length == 0;
+
+            if (message.Length == 1)
+                return rules.Length == 1 &&
+                       ((rules[0] as CharRule)?.Char ?? message[0] + 1) == message[0];
+
             var charsStepsStacks = new Stack<Step>[message.Length];
 
             charsStepsStacks[0] = new Stack<Step>();
@@ -255,11 +261,11 @@ namespace Solutions
                 loopsCount += 1;
                 if (loopsCount > limitOfLoops)
                 {
-                    Console.Write("FAIL");
+                    Console.Write(" ======== FAIL =======");
                     return false;
                 }
 
-                bool isLast = (characterIndex + 1) == message.Length;
+                bool isLast  = (characterIndex + 1) == message.Length;
 
                 Log($"\n[{characterIndex}]: '{message[characterIndex]}' {(isLast ? "last" : "")}");
 
@@ -276,7 +282,7 @@ namespace Solutions
                         return false;
 
                     characterIndex -= 1;
-                    PopFromStackStepsThatAreAtTheLastId(charsStepsStacks[characterIndex]);
+                    //PopFromStackStepsThatAreAtTheLastId(charsStepsStacks[characterIndex]);
                     continue;
                 }
 
@@ -293,10 +299,17 @@ namespace Solutions
                     continue;
                 }
 
+                /*
+                var lastCharFirstStep = charsStepsStacks[characterIndex];
+                if (lastCharFirstStep.IdsSetIndex +1 == lastCharFirstStep.Rule.Ids.Length &&
+                   lastCharFirstStep.IdIndex +1      != lastCharFirstStep.Rule.Ids[lastCharFirstStep.IdsSetIndex].Length)
+                   return false;
+                */
+
                 if (AreAllStepsOnTheRulesLastIds(charStack) == false)
                 {
                     characterIndex -= 1;
-                    PopFromStackStepsThatAreAtTheLastId(charsStepsStacks[characterIndex]);
+                    //PopFromStackStepsThatAreAtTheLastId(charsStepsStacks[characterIndex]);
                     continue;
                 }
 
@@ -332,52 +345,69 @@ namespace Solutions
         {
             int messagesMatchingRulesCount = 0;
 
-            //receivedMessages = new string[]
-            //{
-            //    "0: 1 3 2",
-            //    "1: \"a\"",
-            //    "2: \"b\"",
-            //    "3: 1 | 1 3",
-            //    "",
-            //    "aab",
-            //    "aaab",
-            //    "aaaab",
-            //    "aaaaa"
-            //};
+            int messagesStartIndex = 0;
+            var rules = new Rule[1024];
 
-            //receivedMessages = new string[]
-            //{
-            //    "0: 1 3 2",
-            //    "1: \"a\"",
-            //    "2: \"b\"",
-            //    "3: 1 2 | 1 3 2",
-            //    "",
-            //    "aabb",
-            //    "aaabbb",
-            //    "aaabbbb",
-            //    "aaaabbb",
-            //
-            //};
+            ParseReceivedMessages(receivedMessages, out messagesStartIndex, in rules);
 
-            /*
-                OK  abbbbbabbbaaaababbaabbbbabababbbabbbbbbabaaaa
-                OK  bbabbbbaabaabba
-                NOK babbbbaabbbbbabbbbbbaabaaabaaa
-                OK  aaabbbbbbaaaabaababaabababbabaaabbababababaaa
-                NOK bbbbbbbaaaabbbbaaabbabaaa
-                NOK bbbababbbbaaaaaaaabbababaaababaabab
-                NOK ababaaaaaabaaab
-                OK  ababaaaaabbbaba
-                OK  baabbaaaabbaaaababbaababb
-                OK  abbbbabbbbaaaababbbbbbaaaababb
-                OK  aaaaabbaabaaaaababaa
-                NOK aaaabbaaaabbaaa
-                NOK aaaabbaabbaaaaaaabbbabbbaaabbaabaaa
-                NOK babaaabbbaaabaababbaabababaaab
-                OK  aabbbbbaabbbaaaaaabbbbbababaaaaabbaaabba
-             */
+            // Change rules
+            // 8: 42 | 42 8
+            // 11: 42 31 | 42 11 31
+            rules[8]  = Rule.FromString("8: 42 | 42 8");
+            rules[11] = Rule.FromString("11: 42 31 | 42 11 31");
 
-            receivedMessages = new string[]
+            for (int i = messagesStartIndex; i < receivedMessages.Length; i++)
+            {
+                string message = receivedMessages[i];
+                bool isValid = IsValidMessage2(message, rules);
+                Console.WriteLine($"{(isValid ? "OK " : "NOK")} {message}");
+                if (isValid) messagesMatchingRulesCount += 1;
+            }
+
+            return messagesMatchingRulesCount;
+        }
+
+        public void RunTests()
+        {
+            var rules1 = new string[]
+            {
+                "0: 1 3 2",
+                "1: \"a\"",
+                "2: \"b\"",
+                "3: 1 | 1 3",
+                "",
+            };
+
+            var rules1tasks = new (string line, bool expectedAnswer)[]
+            {
+                //("",      false),
+                //("a",     false),
+                ("aa",    false),
+                //("aab",   true),
+                //("aaab",  true),
+                //("aaaab", true),
+                //("aaaaa", false),
+            };
+
+            var rules2 = new string[]
+            {
+                "0: 1 3 2",
+                "1: \"a\"",
+                "2: \"b\"",
+                "3: 1 2 | 1 3 2",
+                ""
+            };
+
+            var rules2tasks = new (string line, bool expectedAnswer)[]
+            {
+                ("ab",      false),
+                ("aabb",    true),
+                ("aaabbb",  true),
+                ("aaabbbb", false),
+                ("aaaabbb", false),
+            };
+
+            var rules3 = new string[]
             {
                 "0: 8 11",
                 "1: \"a\"",
@@ -411,49 +441,53 @@ namespace Solutions
                 "31: 14 17 | 1 13",
                 "42: 9 14 | 10 1",
                  "",
-
-                "abbbbbabbbaaaababbaabbbbabababbbabbbbbbabaaaa",
-                "bbabbbbaabaabba",
-                "babbbbaabbbbbabbbbbbaabaaabaaa",
-                "aaabbbbbbaaaabaababaabababbabaaabbababababaaa",
-                "bbbbbbbaaaabbbbaaabbabaaa",
-                "bbbababbbbaaaaaaaabbababaaababaabab",
-                "ababaaaaaabaaab",
-                "ababaaaaabbbaba",
-                "baabbaaaabbaaaababbaababb",
-                "abbbbabbbbaaaababbbbbbaaaababb",
-                "aaaaabbaabaaaaababaa",
-                "aaaabbaaaabbaaa",
-                "aaaabbaabbaaaaaaabbbabbbaaabbaabaaa",
-                "babaaabbbaaabaababbaabababaaab",
-                "aabbbbbaabbbaaaaaabbbbbababaaaaabbaaabba",
             };
 
-            int messagesStartIndex = 0;
-            var rules = new Rule[1024];
 
-            ParseReceivedMessages(receivedMessages, out messagesStartIndex, in rules);
-
-            // Change rules
-            // 8: 42 | 42 8
-            // 11: 42 31 | 42 11 31
-            rules[8]  = Rule.FromString("8: 42 | 42 8");
-            rules[11] = Rule.FromString("11: 42 31 | 42 11 31");
-
-            //foreach (var rule in rules)
-            //    if (rule != null)
-            //        Console.WriteLine(rule);
-
-
-            for (int i = messagesStartIndex; i < receivedMessages.Length; i++)
+            var rules3tasks = new (string line, bool expectedAnswer)[]
             {
-                string message = receivedMessages[i];
-                bool isValid = IsValidMessage2(message, rules);
-                Console.WriteLine($"{(isValid ? "OK " : "NOK")} {message}");
-                if (isValid) messagesMatchingRulesCount += 1;
+                ("abbbbbabbbaaaababbaabbbbabababbbabbbbbbabaaaa", false),
+                ("bbabbbbaabaabba",                               true),
+                ("babbbbaabbbbbabbbbbbaabaaabaaa",                true),
+                ("aaabbbbbbaaaabaababaabababbabaaabbababababaaa", true),
+                ("bbbbbbbaaaabbbbaaabbabaaa",                     true),
+                ("bbbababbbbaaaaaaaabbababaaababaabab",           true),
+                ("ababaaaaaabaaab",                               true),
+                ("ababaaaaabbbaba",                               true),
+                ("baabbaaaabbaaaababbaababb",                     true),
+                ("abbbbabbbbaaaababbbbbbaaaababb",                true),
+                ("aaaaabbaabaaaaababaa",                          true),
+                ("aaaabbaaaabbaaa",                               false),
+                ("aaaabbaabbaaaaaaabbbabbbaaabbaabaaa",           true),
+                ("babaaabbbaaabaababbaabababaaab",                false),
+                ("aabbbbbaabbbaaaaaabbbbbababaaaaabbaaabba",      true),
+            };
+
+            void test(string[] rulesStrings, (string line, bool expectedAnswer)[] tasks)
+            {
+                int messagesStartIndex = 0;
+                var rules = new Rule[1024];
+
+                ParseReceivedMessages(rulesStrings, out messagesStartIndex, in rules);
+
+                // Change rules
+                // 8: 42 | 42 8
+                // 11: 42 31 | 42 11 31
+                rules[8]  = Rule.FromString("8: 42 | 42 8");
+                rules[11] = Rule.FromString("11: 42 31 | 42 11 31");
+
+                foreach (var task in tasks)
+                {
+                    bool isValid = IsValidMessage2(task.line, rules);
+                    Console.WriteLine($"{(task.expectedAnswer ? "OK " : "NOK")}  {(isValid ? "OK " : "NOK")}  '{task.line}'");
+                }
             }
 
-            return messagesMatchingRulesCount;
+            test(rules1, rules1tasks);
+            Console.WriteLine();
+            //test(rules2, rules2tasks);
+            Console.WriteLine();
+            //test(rules3, rules3tasks);
         }
 
         public static readonly string[] PUZZLE_INPUT =
