@@ -170,7 +170,7 @@ namespace Solutions
 
         public void Log(string message)
         {
-            Console.WriteLine(message);
+            //Console.WriteLine(message);
         }
 
         public bool IsValidMessage2(string message, Rule[] rules)
@@ -203,6 +203,12 @@ namespace Solutions
                 while (stepsStack.Count > 0)
                 {
                     var step = stepsStack.Peek();
+
+                    if (step.IdsSetIndex >= step.Rule.Ids.Length)
+                    {
+                        stepsStack.Pop();
+                        continue;
+                    }
 
                     step.IdIndex += 1;
                     if (step.IdIndex >= step.Rule.Ids[step.IdsSetIndex].Length)
@@ -286,7 +292,7 @@ namespace Solutions
                     continue;
                 }
 
-                Log($"{charRule.Char} ?= {message[characterIndex]}");
+                Log($"[{characterIndex}]: {charRule.Char} ?= {message[characterIndex]}");
 
                 if (charRule.Char != message[characterIndex])
                     continue;
@@ -309,7 +315,7 @@ namespace Solutions
                 if (AreAllStepsOnTheRulesLastIds(charStack) == false)
                 {
                     characterIndex -= 1;
-                    //PopFromStackStepsThatAreAtTheLastId(charsStepsStacks[characterIndex]);
+                    charsStepsStacks[characterIndex].Peek().IdsSetIndex += 1;
                     continue;
                 }
 
@@ -380,13 +386,13 @@ namespace Solutions
 
             var rules1tasks = new (string line, bool expectedAnswer)[]
             {
-                //("",      false),
-                //("a",     false),
+                ("",      false),
+                ("a",     false),
                 ("aa",    false),
-                //("aab",   true),
-                //("aaab",  true),
-                //("aaaab", true),
-                //("aaaaa", false),
+                ("aab",   true),
+                ("aaab",  true),
+                ("aaaab", true),
+                ("aaaaa", false),
             };
 
             var rules2 = new string[]
@@ -485,7 +491,7 @@ namespace Solutions
 
             test(rules1, rules1tasks);
             Console.WriteLine();
-            //test(rules2, rules2tasks);
+            test(rules2, rules2tasks);
             Console.WriteLine();
             //test(rules3, rules3tasks);
         }
