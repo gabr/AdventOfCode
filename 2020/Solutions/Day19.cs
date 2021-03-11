@@ -170,7 +170,7 @@ namespace Solutions
 
         public void Log(string message)
         {
-            Console.WriteLine(message);
+            //Console.WriteLine(message);
         }
 
         public bool IsValidMessage2(string message, Rule[] rules)
@@ -304,7 +304,7 @@ namespace Solutions
                     // włączonym przykładzie.
 
                     var step = charStack.Peek();
-                    if (step.IdIndex != 0)
+                    while (step.IdIndex != 0)
                     {
                         characterIndex -= 1;
                         step = charsStepsStacks[characterIndex].Peek();
@@ -331,8 +331,14 @@ namespace Solutions
 
                 if (AreAllStepsOnTheRulesLastIds(charStack) == false)
                 {
-                    characterIndex -= 1;
-                    charsStepsStacks[characterIndex].Peek().IdsSetIndex += 1;
+                    var step = charStack.Peek();
+                    while (step.IdIndex != 0)
+                    {
+                        characterIndex -= 1;
+                        step = charsStepsStacks[characterIndex].Peek();
+                    }
+
+                    step.IdIndex = step.Rule.Ids[step.IdsSetIndex].Length - 1;
                     continue;
                 }
 
@@ -403,13 +409,13 @@ namespace Solutions
 
             var rules1tasks = new (string line, bool expectedAnswer)[]
             {
-                //("",      false),
-                //("a",     false),
-                //("aa",    false),
-                //("aab",   true),
-                //("aaab",  true),
-                //("aaaab", true),
-                //("aaaaa", false),
+                ("",      false),
+                ("a",     false),
+                ("aa",    false),
+                ("aab",   true),
+                ("aaab",  true),
+                ("aaaab", true),
+                ("aaaaa", false),
             };
 
             var rules2 = new string[]
@@ -423,10 +429,10 @@ namespace Solutions
 
             var rules2tasks = new (string line, bool expectedAnswer)[]
             {
-                //("ab",      false),
-                //("aabb",    true),
-                //("aaabbb",  true),
-                //("aaabbbb", false),
+                ("ab",      false),
+                ("aabb",    true),
+                ("aaabbb",  true),
+                ("aaabbbb", false),
                 ("aaaabbb", false),
             };
 
