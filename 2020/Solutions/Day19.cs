@@ -104,76 +104,12 @@ namespace Solutions
             }
         }
 
-        public bool IsValidMessage(string message, Rule[] rules)
-        {
-            int charIndex  = 0;
-            var rulesStack = new List<int>();
-
-            bool IsValidForRule(int ruleId, bool endRule)
-            {
-                rulesStack.Add(ruleId);
-                var rule = rules[ruleId];
-
-                if (rule is CharRule)
-                {
-                    var charRule = (CharRule)rule;
-                    bool isValid = message[charIndex] == charRule.Char;
-
-                    Console.WriteLine($"[{charIndex}]{message[charIndex]} == [{string.Join(" ", rulesStack)}]{charRule.Char} {(isValid ? "OK" : "NOK")}");
-                    if (isValid)
-                    {
-                        charIndex += 1;
-                        return true;
-                    }
-                    else
-                    {
-                        return false;
-                    }
-                }
-                else
-                {
-                    var idsRule = (IdsRule)rule;
-
-                    var tmpCharIndex = charIndex;
-                    foreach (var ids in idsRule.Ids)
-                    {
-                        charIndex = tmpCharIndex;
-                        for (int i = 0; i < ids.Length; i++)
-                        {
-                            int  id     = ids[i];
-                            bool isLast = i == ids.Length - 1;
-
-                            bool isValid = IsValidForRule(id, endRule && isLast);
-                            rulesStack.RemoveAt(rulesStack.Count - 1);
-
-
-                            if (endRule == false && charIndex == message.Length)
-                                return false;
-
-                            if (isValid && isLast && endRule && charIndex != message.Length)
-                                return false;
-
-                            if (isValid && isLast)
-                                return true;
-
-                            if (isValid == false)
-                                break;
-                        }
-                    }
-
-                    return false;
-                }
-            }
-
-            return IsValidForRule(0, true);
-        }
-
         public void Log(string message)
         {
             //Console.WriteLine(message);
         }
 
-        public bool IsValidMessage2(string message, Rule[] rules)
+        public bool IsValidMessage(string message, Rule[] rules)
         {
             if (message.Length == 0)
                 return rules.Length == 0;
@@ -319,7 +255,6 @@ namespace Solutions
                         return false;
 
                     characterIndex -= 1;
-                    //PopFromStackStepsThatAreAtTheLastId(charsStepsStacks[characterIndex]);
                     continue;
                 }
 
@@ -338,13 +273,6 @@ namespace Solutions
                     characterIndex += 1;
                     continue;
                 }
-
-                /*
-                var lastCharFirstStep = charsStepsStacks[characterIndex];
-                if (lastCharFirstStep.IdsSetIndex +1 == lastCharFirstStep.Rule.Ids.Length &&
-                   lastCharFirstStep.IdIndex +1      != lastCharFirstStep.Rule.Ids[lastCharFirstStep.IdsSetIndex].Length)
-                   return false;
-                */
 
                 if (AreAllStepsOnTheRulesLastIds(charStack) == false)
                 {
@@ -373,7 +301,7 @@ namespace Solutions
             {
                 string message = receivedMessages[i];
                 bool isValid = IsValidMessage(message, rules);
-                Console.WriteLine($"{(isValid ? "OK " : "NOK")} {message}");
+                //Console.WriteLine($"{(isValid ? "OK " : "NOK")} {message}");
                 if (isValid) messagesMatchingRulesCount += 1;
             }
 
@@ -398,135 +326,12 @@ namespace Solutions
             for (int i = messagesStartIndex; i < receivedMessages.Length; i++)
             {
                 string message = receivedMessages[i];
-                bool isValid = IsValidMessage2(message, rules);
-                Console.WriteLine($"{(isValid ? "OK " : "NOK")} {message}");
+                bool isValid = IsValidMessage(message, rules);
+                //Console.WriteLine($"{(isValid ? "OK " : "NOK")} {message}");
                 if (isValid) messagesMatchingRulesCount += 1;
             }
 
             return messagesMatchingRulesCount;
-        }
-
-        public void RunTests()
-        {
-            var rules1 = new string[]
-            {
-                "0: 1 3 2",
-                "1: \"a\"",
-                "2: \"b\"",
-                "3: 1 | 1 3",
-                "",
-            };
-
-            var rules1tasks = new (string line, bool expectedAnswer)[]
-            {
-                ("",      false),
-                ("a",     false),
-                ("aa",    false),
-                ("aab",   true),
-                ("aaab",  true),
-                ("aaaab", true),
-                ("aaaaa", false),
-            };
-
-            var rules2 = new string[]
-            {
-                "0: 1 3 2",
-                "1: \"a\"",
-                "2: \"b\"",
-                "3: 1 2 | 1 3 2",
-                ""
-            };
-
-            var rules2tasks = new (string line, bool expectedAnswer)[]
-            {
-                ("ab",      false),
-                ("aabb",    true),
-                ("aaabbb",  true),
-                ("aaabbbb", false),
-                ("aaaabbb", false),
-            };
-
-            var rules3 = new string[]
-            {
-                "0: 8 11",
-                "1: \"a\"",
-                "2: 1 24 | 14 4",
-                "3: 5 14 | 16 1",
-                "4: 1 1",
-                "5: 1 14 | 15 1",
-                "6: 14 14 | 1 14",
-                "7: 14 5 | 1 21",
-                "8: 42",
-                "9: 14 27 | 1 26",
-                "10: 23 14 | 28 1",
-                "11: 42 31",
-                "12: 24 14 | 19 1",
-                "13: 14 3 | 1 12",
-                "14: \"b\"",
-                "15: 1 | 14",
-                "16: 15 1 | 14 14",
-                "17: 14 2 | 1 7",
-                "18: 15 15",
-                "19: 14 1 | 14 14",
-                "20: 14 14 | 1 15",
-                "21: 14 1 | 1 14",
-                "22: 14 14",
-                "23: 25 1 | 22 14",
-                "24: 14 1",
-                "25: 1 1 | 1 14",
-                "26: 14 22 | 1 20",
-                "27: 1 6 | 14 18",
-                "28: 16 1",
-                "31: 14 17 | 1 13",
-                "42: 9 14 | 10 1",
-                 "",
-            };
-
-
-            var rules3tasks = new (string line, bool expectedAnswer)[]
-            {
-                ("abbbbbabbbaaaababbaabbbbabababbbabbbbbbabaaaa", false),
-                ("bbabbbbaabaabba",                               true),
-                ("babbbbaabbbbbabbbbbbaabaaabaaa",                true),
-                ("aaabbbbbbaaaabaababaabababbabaaabbababababaaa", true),
-                ("bbbbbbbaaaabbbbaaabbabaaa",                     true),
-                ("bbbababbbbaaaaaaaabbababaaababaabab",           true),
-                ("ababaaaaaabaaab",                               true),
-                ("ababaaaaabbbaba",                               true),
-                ("baabbaaaabbaaaababbaababb",                     true),
-                ("abbbbabbbbaaaababbbbbbaaaababb",                true),
-                ("aaaaabbaabaaaaababaa",                          true),
-                ("aaaabbaaaabbaaa",                               false),
-                ("aaaabbaabbaaaaaaabbbabbbaaabbaabaaa",           true),
-                ("babaaabbbaaabaababbaabababaaab",                false),
-                ("aabbbbbaabbbaaaaaabbbbbababaaaaabbaaabba",      true),
-            };
-
-            void test(string[] rulesStrings, (string line, bool expectedAnswer)[] tasks)
-            {
-                int messagesStartIndex = 0;
-                var rules = new Rule[1024];
-
-                ParseReceivedMessages(rulesStrings, out messagesStartIndex, in rules);
-
-                // Change rules
-                // 8: 42 | 42 8
-                // 11: 42 31 | 42 11 31
-                rules[8]  = Rule.FromString("8: 42 | 42 8");
-                rules[11] = Rule.FromString("11: 42 31 | 42 11 31");
-
-                foreach (var task in tasks)
-                {
-                    bool isValid = IsValidMessage2(task.line, rules);
-                    Console.WriteLine($"{(task.expectedAnswer ? "OK " : "NOK")}  {(isValid ? "OK " : "NOK")}  '{task.line}'");
-                }
-            }
-
-            test(rules1, rules1tasks);
-            Console.WriteLine();
-            test(rules2, rules2tasks);
-            Console.WriteLine();
-            test(rules3, rules3tasks);
         }
 
         public static readonly string[] PUZZLE_INPUT =
