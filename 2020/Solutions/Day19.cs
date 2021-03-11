@@ -170,7 +170,7 @@ namespace Solutions
 
         public void Log(string message)
         {
-            //Console.WriteLine(message);
+            Console.WriteLine(message);
         }
 
         public bool IsValidMessage2(string message, Rule[] rules)
@@ -295,7 +295,24 @@ namespace Solutions
                 Log($"[{characterIndex}]: {charRule.Char} ?= {message[characterIndex]}");
 
                 if (charRule.Char != message[characterIndex])
+                {
+                    // TODO(Arek): Co faktycznie należy zrobić gdy znaki się nie równają?
+                    // Nie można zawsze pozostać na tym samym znaku i po prostu próbować
+                    // nastęnej regóły.  To zależy czy się jest pierwszym znakiem w danej
+                    // grupie, czy nie.  Poniższe rozwiązanie nie działa, ale nie psuje
+                    // tak bardzo pozostałych testów.  Przedebuguj sobie na obecnie
+                    // włączonym przykładzie.
+
+                    var step = charStack.Peek();
+                    if (step.IdIndex != 0)
+                    {
+                        characterIndex -= 1;
+                        step = charsStepsStacks[characterIndex].Peek();
+                    }
+
+                    step.IdIndex = step.Rule.Ids[step.IdsSetIndex].Length - 1;
                     continue;
+                }
 
                 if (isLast == false)
                 {
@@ -386,13 +403,13 @@ namespace Solutions
 
             var rules1tasks = new (string line, bool expectedAnswer)[]
             {
-                ("",      false),
-                ("a",     false),
-                ("aa",    false),
-                ("aab",   true),
-                ("aaab",  true),
-                ("aaaab", true),
-                ("aaaaa", false),
+                //("",      false),
+                //("a",     false),
+                //("aa",    false),
+                //("aab",   true),
+                //("aaab",  true),
+                //("aaaab", true),
+                //("aaaaa", false),
             };
 
             var rules2 = new string[]
@@ -406,10 +423,10 @@ namespace Solutions
 
             var rules2tasks = new (string line, bool expectedAnswer)[]
             {
-                ("ab",      false),
-                ("aabb",    true),
-                ("aaabbb",  true),
-                ("aaabbbb", false),
+                //("ab",      false),
+                //("aabb",    true),
+                //("aaabbb",  true),
+                //("aaabbbb", false),
                 ("aaaabbb", false),
             };
 
