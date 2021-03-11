@@ -99,7 +99,6 @@ namespace Solutions
             }));
         }
 
-        /*
         [TestMethod]
         public void Test2PuzzleInputWrongResults()
         {
@@ -113,10 +112,9 @@ namespace Solutions
         {
             var day = new Day19();
             Assert.AreEqual(
-                ,
+                357,
                 day.Solve2(Day19.PUZZLE_INPUT));
         }
-        */
 
     }
 }

@@ -170,7 +170,7 @@ namespace Solutions
 
         public void Log(string message)
         {
-            Console.WriteLine(message);
+            //Console.WriteLine(message);
         }
 
         public bool IsValidMessage2(string message, Rule[] rules)
@@ -249,6 +249,37 @@ namespace Solutions
                 }
             }
 
+            int GoBack(int currentCharacterIndex)
+            {
+                Log($"GoBack - startig with: {currentCharacterIndex}");
+                while (charsStepsStacks[currentCharacterIndex].Count > 0)
+                {
+                    while (charsStepsStacks[currentCharacterIndex].Peek().IdIndex != 0)
+                        currentCharacterIndex -= 1;
+
+                    var step = charsStepsStacks[currentCharacterIndex].Peek();
+
+                    Log($"GoBack - after going back: {currentCharacterIndex}, step: {step}");
+
+                    step.IdIndex = -1;
+                    step.IdsSetIndex += 1;
+
+                    Log($"GoBack - step after change: {step}");
+
+                    if (step.IdsSetIndex >= step.Rule.Ids.Length)
+                    {
+                        Log($"GoBack - have to continue");
+                        charsStepsStacks[currentCharacterIndex].Pop();
+                        continue;
+                    }
+
+                    break;
+                }
+
+                Log($"GoBack - resulting index: {currentCharacterIndex}");
+                return currentCharacterIndex;
+            }
+
             bool AreAllStepsOnTheRulesLastIds(Stack<Step> stepsStack)
             {
                 foreach (var step in stepsStack)
@@ -296,21 +327,7 @@ namespace Solutions
 
                 if (charRule.Char != message[characterIndex])
                 {
-                    // TODO(Arek): Co faktycznie należy zrobić gdy znaki się nie równają?
-                    // Nie można zawsze pozostać na tym samym znaku i po prostu próbować
-                    // nastęnej regóły.  To zależy czy się jest pierwszym znakiem w danej
-                    // grupie, czy nie.  Poniższe rozwiązanie nie działa, ale nie psuje
-                    // tak bardzo pozostałych testów.  Przedebuguj sobie na obecnie
-                    // włączonym przykładzie.
-
-                    var step = charStack.Peek();
-                    while (step.IdIndex != 0)
-                    {
-                        characterIndex -= 1;
-                        step = charsStepsStacks[characterIndex].Peek();
-                    }
-
-                    step.IdIndex = step.Rule.Ids[step.IdsSetIndex].Length - 1;
+                    characterIndex = GoBack(characterIndex);
                     continue;
                 }
 
@@ -331,14 +348,7 @@ namespace Solutions
 
                 if (AreAllStepsOnTheRulesLastIds(charStack) == false)
                 {
-                    var step = charStack.Peek();
-                    while (step.IdIndex != 0)
-                    {
-                        characterIndex -= 1;
-                        step = charsStepsStacks[characterIndex].Peek();
-                    }
-
-                    step.IdIndex = step.Rule.Ids[step.IdsSetIndex].Length - 1;
+                    characterIndex = GoBack(characterIndex);
                     continue;
                 }
 
@@ -409,13 +419,13 @@ namespace Solutions
 
             var rules1tasks = new (string line, bool expectedAnswer)[]
             {
-                //("",      false),
-                //("a",     false),
-                //("aa",    false),
-                //("aab",   true),
-                //("aaab",  true),
-                //("aaaab", true),
-                //("aaaaa", false),
+                ("",      false),
+                ("a",     false),
+                ("aa",    false),
+                ("aab",   true),
+                ("aaab",  true),
+                ("aaaab", true),
+                ("aaaaa", false),
             };
 
             var rules2 = new string[]
@@ -430,10 +440,10 @@ namespace Solutions
             var rules2tasks = new (string line, bool expectedAnswer)[]
             {
                 ("ab",      false),
-                //("aabb",    true),
-                //("aaabbb",  true),
-                //("aaabbbb", false),
-                //("aaaabbb", false),
+                ("aabb",    true),
+                ("aaabbb",  true),
+                ("aaabbbb", false),
+                ("aaaabbb", false),
             };
 
             var rules3 = new string[]
@@ -516,7 +526,7 @@ namespace Solutions
             Console.WriteLine();
             test(rules2, rules2tasks);
             Console.WriteLine();
-            //test(rules3, rules3tasks);
+            test(rules3, rules3tasks);
         }
 
         public static readonly string[] PUZZLE_INPUT =
