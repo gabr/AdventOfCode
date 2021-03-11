@@ -170,7 +170,7 @@ namespace Solutions
 
         public void Log(string message)
         {
-            //Console.WriteLine(message);
+            Console.WriteLine(message);
         }
 
         public bool IsValidMessage2(string message, Rule[] rules)
@@ -409,13 +409,13 @@ namespace Solutions
 
             var rules1tasks = new (string line, bool expectedAnswer)[]
             {
-                ("",      false),
-                ("a",     false),
-                ("aa",    false),
-                ("aab",   true),
-                ("aaab",  true),
-                ("aaaab", true),
-                ("aaaaa", false),
+                //("",      false),
+                //("a",     false),
+                //("aa",    false),
+                //("aab",   true),
+                //("aaab",  true),
+                //("aaaab", true),
+                //("aaaaa", false),
             };
 
             var rules2 = new string[]
@@ -430,10 +430,10 @@ namespace Solutions
             var rules2tasks = new (string line, bool expectedAnswer)[]
             {
                 ("ab",      false),
-                ("aabb",    true),
-                ("aaabbb",  true),
-                ("aaabbbb", false),
-                ("aaaabbb", false),
+                //("aabb",    true),
+                //("aaabbb",  true),
+                //("aaabbbb", false),
+                //("aaaabbb", false),
             };
 
             var rules3 = new string[]
