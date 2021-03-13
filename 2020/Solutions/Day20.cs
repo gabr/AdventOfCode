@@ -7,15 +7,27 @@ namespace Solutions
 {
     public class Day20
     {
-
         public class Tile
         {
-            public UInt64  Id    { get; private set; }
-            public int[][] Edges { get; private set; }
+            public UInt64   Id            { get; private set; }
+            public int[][]  PossibleEdges { get; private set; }
+            public string[] Lines         { get; private set; }
 
-            protected Tile(string[] tileStrings)
+            public bool Used = false;
+
+            public int Transformation = 0;
+            public int Rotation       = 0;
+
+            public int TopEdge    { get => PossibleEdges[Transformation][(0+Rotation)%4]; }
+            public int RightEdge  { get => PossibleEdges[Transformation][(1+Rotation)%4]; }
+            public int BottomEdge { get => PossibleEdges[Transformation][(2+Rotation)%4]; }
+            public int LeftEdge   { get => PossibleEdges[Transformation][(3+Rotation)%4]; }
+
+            public Tile(string[] tileLines)
             {
-                string idLine = tileStrings[0];
+                Lines = tileLines.Skip(1).ToArray();
+
+                string idLine = tileLines[0];
                 Id = UInt64.Parse(idLine.Substring(5, idLine.Length - 6));
 
                 char[] top    = new char[10];
@@ -27,16 +39,16 @@ namespace Solutions
 
                 for (int i = 0; i < 10; i++)
                 {
-                    top[i]    = CharToDigit(tileStrings[1][i]);
-                    bottom[i] = CharToDigit(tileStrings[10][i]);
+                    top[i]    = CharToDigit(tileLines[1][i]);
+                    bottom[i] = CharToDigit(tileLines[10][i]);
 
-                    left[i]   = CharToDigit(tileStrings[i + 1][0]);
-                    right[i]  = CharToDigit(tileStrings[i + 1][9]);
+                    left[i]   = CharToDigit(tileLines[i + 1][0]);
+                    right[i]  = CharToDigit(tileLines[i + 1][9]);
                 }
 
-                Edges = new int[4][];
+                PossibleEdges = new int[4][];
 
-                Edges[0] = new int[]
+                PossibleEdges[0] = new int[]
                 {
                     Convert.ToInt32(new String(top), 2),
                     Convert.ToInt32(new String(right), 2),
@@ -48,7 +60,7 @@ namespace Solutions
                 Array.Reverse(top);
                 Array.Reverse(bottom);
 
-                Edges[1] = new int[]
+                PossibleEdges[1] = new int[]
                 {
                     Convert.ToInt32(new String(top), 2),
                     Convert.ToInt32(new String(right), 2),
@@ -59,7 +71,7 @@ namespace Solutions
                 Array.Reverse(left);
                 Array.Reverse(right);
 
-                Edges[2] = new int[]
+                PossibleEdges[2] = new int[]
                 {
                     Convert.ToInt32(new String(top), 2),
                     Convert.ToInt32(new String(right), 2),
@@ -70,28 +82,46 @@ namespace Solutions
                 Array.Reverse(top);
                 Array.Reverse(bottom);
 
-                Edges[3] = new int[]
+                PossibleEdges[3] = new int[]
                 {
                     Convert.ToInt32(new String(top), 2),
                     Convert.ToInt32(new String(right), 2),
                     Convert.ToInt32(new String(bottom), 2),
                     Convert.ToInt32(new String(left), 2),
                 };
+            }
 
+            public void ResetTrasfrmation()
+            {
+                Rotation       = 0;
+                Transformation = 0;
+            }
+
+            public void SwitchToNextTransformation()
+            {
+                Rotation += 1;
+
+                if (Rotation >= 4)
+                {
+                    Rotation = 0;
+                    Transformation += 1;
+
+                    if (Transformation >= 4)
+                        Transformation = 0;
+                }
             }
 
             public override string ToString()
             {
-                //return $"{Id}: [{string.Join(", ", Edges.Select(e => $"[{string.Join(", ", e.Select(i => Convert.ToString(i, 2).PadLeft(10, '0')))}]"))}]";
-                return $"{Id}: [{string.Join(", ", Edges.Select(e => $"[{string.Join(", ", e.Select(i => i.ToString().PadLeft(3, ' ')))}]"))}]";
+                return $"{Id}: [{string.Join(", ", PossibleEdges.Select(e => $"[{string.Join(", ", e.Select(i => i.ToString().PadLeft(3, ' ')))}]"))}]";
             }
 
-            public static Tile[] ParseTiles(string[] tilesStrings)
+            public static Tile[] ParseTiles(string[] tilesLinesg)
             {
-                var tiles       = new List<Tile>(tilesStrings.Length / 11);
+                var tiles       = new List<Tile>(tilesLinesg.Length / 11);
                 var tileStrings = new List<string>(12);
 
-                foreach (var line in tilesStrings)
+                foreach (var line in tilesLinesg)
                 {
                     if (line == "")
                     {
@@ -112,7 +142,8 @@ namespace Solutions
 
         }
 
-        public bool IsCornerTile(Tile tile, Tile[] tiles)
+
+        public static bool IsCornerTile(Tile tile, Tile[] tiles)
         {
             var edgeNeighbors = new int[4];
 
@@ -125,23 +156,21 @@ namespace Solutions
 
                 for (int j = 0; j < 4; j++)
                 {
-
                     foreach (var t in tiles)
                     {
                         if (t == tile)
                             continue;
 
                         for (int e = 0; e < 4; e++)
-                            if (Array.IndexOf(t.Edges[j], tile.Edges[i][e]) != -1)
+                            if (Array.IndexOf(t.PossibleEdges[j], tile.PossibleEdges[i][e]) != -1)
                             {
-                                //Console.WriteLine($"Found match: {t.Id}: [{string.Join(", ", t.Edges[j])}] == [{i}][{e}] {tile.Edges[i][e]}");
+                                //Console.WriteLine($"Found match: {t.Id}: [{string.Join(", ", t.PossibleEdges[j])}] == [{i}][{e}] {tile.PossibleEdges[i][e]}");
                                 edgeNeighbors[e] += 1;
                             }
                     }
-
                 }
 
-                //Console.WriteLine($"Edges: {string.Join(", ", edgeNeighbors)}");
+                //Console.WriteLine($"PossibleEdges: {string.Join(", ", edgeNeighbors)}");
 
                 bool edge =
                     (edgeNeighbors[0] == 0 && edgeNeighbors[1] == 0) ||
@@ -156,10 +185,9 @@ namespace Solutions
             return true;
         }
 
-        public UInt64 Solve1(string[] tilesStrings)
+        public Tile[] FindCornerTiles(Tile[] tiles)
         {
-            var tiles = Tile.ParseTiles(tilesStrings);
-            var tilesWithJust2PossibleNeighbours = new List<Tile>(4);
+            var tilesWithJust2PossibleNeighbours = new List<Tile>(10);
 
             foreach (var tile in tiles)
             {
@@ -171,13 +199,130 @@ namespace Solutions
             }
 
             if (tilesWithJust2PossibleNeighbours.Count != 4)
-                Console.WriteLine($"Expecte 4 tiles but got ({tilesWithJust2PossibleNeighbours.Count}): {string.Join(", ", tilesWithJust2PossibleNeighbours.Select(t => t.Id))}");
+                throw new Exception($"Expecte 4 tiles but got ({tilesWithJust2PossibleNeighbours.Count}): {string.Join(", ", tilesWithJust2PossibleNeighbours.Select(t => t.Id))}");
+
+            return tilesWithJust2PossibleNeighbours.ToArray();
+        }
+
+        public static string[] AssembleTilesIntoImage(Tile[] tiles)
+        {
+            // square image
+            int width = (int)Math.Sqrt(tiles.Length);
+            int height = width;
+
+            foreach (var tile in tiles)
+                Console.WriteLine($"tile: {tile}");
+
+            // find first corner tile, we will start assembling from it
+            Tile cornerTile = null;
+            foreach (var tile in tiles)
+                if (IsCornerTile(tile, tiles))
+                {
+                    cornerTile = tile;
+                    break;
+                }
+
+            // start assembling the tiles together
+            var tilesMap = new Tile[width][];
+            for (int w = 0; w < tilesMap.Length; w++)
+                tilesMap[w] = new Tile[height];
+
+            bool TileMatchesNeighbours(Tile tile, int w, int h)
+            {
+                return
+                    (w <= 0 || tilesMap[w-1][h  ].RightEdge  == tile.LeftEdge) &&
+                    (h <= 0 || tilesMap[w  ][h-1].BottomEdge == tile.TopEdge);
+            }
+
+            cornerTile.Used = true;
+            bool FindNextTile(int w, int h, string indent)
+            {
+                if (h == height)
+                    return true;
+
+                int nextW = w + 1;
+                int nextH = h;
+
+                if (nextW == width)
+                {
+                    nextW = 0;
+                    nextH += 1;
+                }
+
+                foreach (var tile in tiles)
+                {
+                    if (tile.Used == true)
+                        continue;
+
+                    tile.Used = true;
+                    tilesMap[w][h] = tile;
+
+                    for (int i = 0; i < 4*4; i++)
+                    {
+                        if (TileMatchesNeighbours(tile, w, h))
+                        {
+                            Console.WriteLine($"{indent}tile [{w}][{h}]: {tile.Id}  fits: trasformation: {tile.Transformation}, rotation: {tile.Rotation}");
+                            if (FindNextTile(nextW, nextH, indent + " "))
+                                return true;
+                        }
+
+                        tile.SwitchToNextTransformation();
+                    }
+
+                    tile.Used = false;
+                    tilesMap[w][h] = null;
+                }
+
+                return false;
+            }
+
+            tilesMap[0][0] = cornerTile;
+            bool found = false;
+            for (int i = 0; i < 4*4; i++)
+            {
+                var tile= cornerTile;
+                Console.WriteLine($"tile [0][0]: {tile.Id}  fits: trasformation: {tile.Transformation}, rotation: {tile.Rotation}");
+                found = FindNextTile(1, 0, " ");
+                if (found)
+                    break;
+
+                cornerTile.SwitchToNextTransformation();
+            }
+
+            if (found == false)
+                throw new Exception("Tiles filed to assemble");
+
+            Console.Write("FOUND");
+            for (int h = 0; h < height; h++)
+            {
+                for (int w = 0; w < width; w++)
+                    Console.Write($"{tilesMap[w][h].Id}  ");
+                Console.WriteLine();
+            }
+
+            throw new Exception("Printing");
+
+            return new string[0];
+        }
+
+        public UInt64 Solve1(string[] tilesStrings)
+        {
+            var tiles = Tile.ParseTiles(tilesStrings);
+            var cornerTiles = FindCornerTiles(tiles);
 
             UInt64 sum = 1ul;
-            foreach (var tile in tilesWithJust2PossibleNeighbours)
+            foreach (var tile in cornerTiles)
                 sum *= (UInt64)tile.Id;
 
             return sum;
+        }
+
+        public UInt64 Solve2(string[] tilesStrings)
+        {
+            var tiles = Tile.ParseTiles(tilesStrings);
+            var image = AssembleTilesIntoImage(tiles);
+
+            return 0ul;
         }
 
 
