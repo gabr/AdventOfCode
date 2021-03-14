@@ -69,7 +69,7 @@ namespace Solutions
             //Console.WriteLine((new Day20()).Solve1(Day20.PUZZLE_INPUT));
             //Console.WriteLine((new Day20()).Solve2(Day20.PUZZLE_INPUT));
 
-            Day20.AssembleTilesIntoImage(Day20.Tile.ParseTiles(Day20.PUZZLE_INPUT));
+            //Day20.AssembleTilesIntoImage(Day20.Tile.ParseTiles(Day20.PUZZLE_INPUT));
 
             var tiles = Day20.Tile.ParseTiles(new []
             {

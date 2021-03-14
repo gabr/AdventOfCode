@@ -67,6 +67,8 @@ namespace Solutions
                     Convert.ToInt32(new String(right), 2),
                 };
 
+                Array.Reverse(top);
+                Array.Reverse(bottom);
                 Array.Reverse(left);
                 Array.Reverse(right);
 
@@ -80,6 +82,8 @@ namespace Solutions
 
                 Array.Reverse(top);
                 Array.Reverse(bottom);
+                Array.Reverse(left);
+                Array.Reverse(right);
 
                 PossibleEdges[3] = new int[]
                 {
