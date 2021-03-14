@@ -28,18 +28,20 @@ namespace Solutions
 
             public static readonly int NUMBER_OF_POSSIBLE_TRANSFORMATIONS = NUMBER_OF_ROTATIONS * Enum.GetValues<Flip>().Length;
 
-            private char[][]     _tile;
-            private string[][][] _possibleEdges;
+            // stored by lines, so [rowIndex][columnIndex]
+            private char[][]  _tile;
+            private int[][][] _possibleEdges;
 
             public UInt64 Id       { get; private set; }
             public bool   Fliped   { get; private set; } = false;
             public int    Rotation { get; private set; } = 0;
             public bool   Used     { get;         set; } = false;
 
-            public string TopEdge    { get => _possibleEdges[(int)(Fliped ? Flip.Fliped : Flip.NotFliped)][Rotation][(int)(Edge.Top)]; }
-            public string RightEdge  { get => _possibleEdges[(int)(Fliped ? Flip.Fliped : Flip.NotFliped)][Rotation][(int)(Edge.Right)]; }
-            public string BottomEdge { get => _possibleEdges[(int)(Fliped ? Flip.Fliped : Flip.NotFliped)][Rotation][(int)(Edge.Bottom)]; }
-            public string LeftEdge   { get => _possibleEdges[(int)(Fliped ? Flip.Fliped : Flip.NotFliped)][Rotation][(int)(Edge.Left)]; }
+            // edge is represented as a number after conversion: ###.#..# -> 11101001 -> 233
+            public int TopEdge    { get => _possibleEdges[(int)(Fliped ? Flip.Fliped : Flip.NotFliped)][Rotation][(int)(Edge.Top)]; }
+            public int RightEdge  { get => _possibleEdges[(int)(Fliped ? Flip.Fliped : Flip.NotFliped)][Rotation][(int)(Edge.Right)]; }
+            public int BottomEdge { get => _possibleEdges[(int)(Fliped ? Flip.Fliped : Flip.NotFliped)][Rotation][(int)(Edge.Bottom)]; }
+            public int LeftEdge   { get => _possibleEdges[(int)(Fliped ? Flip.Fliped : Flip.NotFliped)][Rotation][(int)(Edge.Left)]; }
 
             public Tile(string[] tileLines)
             {
@@ -51,12 +53,12 @@ namespace Solutions
                 string idLine = tileLines[0];
                 Id = UInt64.Parse(idLine.Substring(5, idLine.Length - 6));
 
-                _possibleEdges = new string[Enum.GetValues<Flip>().Length][][];
+                _possibleEdges = new int[Enum.GetValues<Flip>().Length][][];
                 for (int i = 0; i < _possibleEdges.Length; i++)
                 {
-                    _possibleEdges[i] = new string[Enum.GetValues<Edge>().Length][];
+                    _possibleEdges[i] = new int[Enum.GetValues<Edge>().Length][];
                     for (int j = 0; j < _possibleEdges[i].Length; j++)
-                        _possibleEdges[i][j] = new string[NUMBER_OF_ROTATIONS];
+                        _possibleEdges[i][j] = new int[NUMBER_OF_ROTATIONS];
                 }
 
                 int edgeLength = _tile[0].Length;
@@ -73,13 +75,15 @@ namespace Solutions
                     left[i]   = _tile[i][0];
                 }
 
+                int ConvertEdgeToNumber(string edge) => Convert.ToInt32((edge.Replace("#", "1").Replace(".", "0")), 2);
+
                 var tmp = new char[edgeLength];
                 for (int ri = 0; ri < NUMBER_OF_ROTATIONS; ri++)
                 {
-                    _possibleEdges[(int)(Flip.NotFliped)][ri][(int)(Edge.Top)]    = new String(top);
-                    _possibleEdges[(int)(Flip.NotFliped)][ri][(int)(Edge.Right)]  = new String(right);
-                    _possibleEdges[(int)(Flip.NotFliped)][ri][(int)(Edge.Bottom)] = new String(bottom);
-                    _possibleEdges[(int)(Flip.NotFliped)][ri][(int)(Edge.Left)]   = new String(left);
+                    _possibleEdges[(int)(Flip.NotFliped)][ri][(int)(Edge.Top)]    = ConvertEdgeToNumber(new String(top));
+                    _possibleEdges[(int)(Flip.NotFliped)][ri][(int)(Edge.Right)]  = ConvertEdgeToNumber(new String(right));
+                    _possibleEdges[(int)(Flip.NotFliped)][ri][(int)(Edge.Bottom)] = ConvertEdgeToNumber(new String(bottom));
+                    _possibleEdges[(int)(Flip.NotFliped)][ri][(int)(Edge.Left)]   = ConvertEdgeToNumber(new String(left));
 
                     // rotate
                     tmp    = left;
@@ -101,10 +105,10 @@ namespace Solutions
 
                 for (int ri = 0; ri < NUMBER_OF_ROTATIONS; ri++)
                 {
-                    _possibleEdges[(int)(Flip.Fliped)][ri][(int)(Edge.Top)]    = new String(top);
-                    _possibleEdges[(int)(Flip.Fliped)][ri][(int)(Edge.Right)]  = new String(right);
-                    _possibleEdges[(int)(Flip.Fliped)][ri][(int)(Edge.Bottom)] = new String(bottom);
-                    _possibleEdges[(int)(Flip.Fliped)][ri][(int)(Edge.Left)]   = new String(left);
+                    _possibleEdges[(int)(Flip.Fliped)][ri][(int)(Edge.Top)]    = ConvertEdgeToNumber(new String(top));
+                    _possibleEdges[(int)(Flip.Fliped)][ri][(int)(Edge.Right)]  = ConvertEdgeToNumber(new String(right));
+                    _possibleEdges[(int)(Flip.Fliped)][ri][(int)(Edge.Bottom)] = ConvertEdgeToNumber(new String(bottom));
+                    _possibleEdges[(int)(Flip.Fliped)][ri][(int)(Edge.Left)]   = ConvertEdgeToNumber(new String(left));
 
                     // rotate
                     tmp    = left;
@@ -116,6 +120,41 @@ namespace Solutions
                     Array.Reverse(top);
                     Array.Reverse(bottom);
                 }
+            }
+
+            // returns image as chars array [x][y] -> [columnIndex][rowIndex]
+            public char[][] GetTileImageAccordingToCurrentTransformation()
+            {
+                // copy without edges and switch from storing data
+                // per row to store them per column
+                int size = _tile.Length - 2;
+                var result = new char[size][];
+                for (int ci = 0; ci < size; ci++)
+                    result[ci] = new char[size];
+
+                for (int ci = 0; ci < size; ci++)
+                    for (int ri = 0; ri < size; ri++)
+                        result[ci][ri] = _tile[ri+1][ci+1];
+
+                // transform
+                if (Fliped)
+                {
+                    foreach (var column in result)
+                        Array.Reverse(column);
+                }
+
+                if (Rotation == 0)
+                    return result;
+
+                if (Rotation == 2)
+                {
+                    Array.Reverse(result);
+                    foreach (var column in result)
+                        Array.Reverse(column);
+                    return result;
+                }
+
+                return result;
             }
 
             public void SwitchToNextTransformation()
@@ -133,12 +172,12 @@ namespace Solutions
                 return $"{Id}";
             }
 
-            public static Tile[] ParseTiles(string[] tilesLinesg)
+            public static Tile[] ParseTiles(string[] tilesLine)
             {
-                var tiles       = new List<Tile>(tilesLinesg.Length / 11);
+                var tiles       = new List<Tile>(tilesLine.Length / 11);
                 var tileStrings = new List<string>(12);
 
-                foreach (var line in tilesLinesg)
+                foreach (var line in tilesLine)
                 {
                     if (line == "")
                     {
@@ -232,6 +271,15 @@ namespace Solutions
             return tilesMap;
         }
 
+        public char[][] ConvertTilesMapToImage(Tile[][] tilesMap)
+        {
+            // check assumption that tiles map is square
+            foreach (var tilesLine in tilesMap)
+                System.Diagnostics.Debug.Assert(tilesLine.Length == tilesMap.Length);
+
+            return new char[0][];
+        }
+
         public UInt64 Solve1(string[] tilesStrings)
         {
             var tiles = Tile.ParseTiles(tilesStrings);
@@ -251,8 +299,9 @@ namespace Solutions
 
         public UInt64 Solve2(string[] tilesStrings)
         {
-            var tiles = Tile.ParseTiles(tilesStrings);
-            var image = AssembleTiles(tiles);
+            var tiles          = Tile.ParseTiles(tilesStrings);
+            var assembledTiles = AssembleTiles(tiles);
+            var image          = ConvertTilesMapToImage(assembledTiles);
 
             return 0ul;
         }
