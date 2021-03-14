@@ -38,10 +38,12 @@ namespace Solutions
             public bool   Used     { get;         set; } = false;
 
             // edge is represented as a number after conversion: ###.#..# -> 11101001 -> 233
-            public int TopEdge    { get => _possibleEdges[(int)(Fliped ? Flip.Fliped : Flip.NotFliped)][Rotation][(int)(Edge.Top)]; }
-            public int RightEdge  { get => _possibleEdges[(int)(Fliped ? Flip.Fliped : Flip.NotFliped)][Rotation][(int)(Edge.Right)]; }
-            public int BottomEdge { get => _possibleEdges[(int)(Fliped ? Flip.Fliped : Flip.NotFliped)][Rotation][(int)(Edge.Bottom)]; }
-            public int LeftEdge   { get => _possibleEdges[(int)(Fliped ? Flip.Fliped : Flip.NotFliped)][Rotation][(int)(Edge.Left)]; }
+            public int TopEdge    => _possibleEdges[(int)(Fliped ? Flip.Fliped : Flip.NotFliped)][Rotation][(int)(Edge.Top)];
+            public int RightEdge  => _possibleEdges[(int)(Fliped ? Flip.Fliped : Flip.NotFliped)][Rotation][(int)(Edge.Right)];
+            public int BottomEdge => _possibleEdges[(int)(Fliped ? Flip.Fliped : Flip.NotFliped)][Rotation][(int)(Edge.Bottom)];
+            public int LeftEdge   => _possibleEdges[(int)(Fliped ? Flip.Fliped : Flip.NotFliped)][Rotation][(int)(Edge.Left)];
+
+            public int ImageSize  => _tile[0].Length - 2;
 
             public Tile(string[] tileLines)
             {
@@ -127,13 +129,12 @@ namespace Solutions
             {
                 // copy without edges and switch from storing data
                 // per row to store them per column
-                int size = _tile.Length - 2;
-                var result = new char[size][];
-                for (int ci = 0; ci < size; ci++)
-                    result[ci] = new char[size];
+                var result = new char[ImageSize][];
+                for (int ci = 0; ci < ImageSize; ci++)
+                    result[ci] = new char[ImageSize];
 
-                for (int ci = 0; ci < size; ci++)
-                    for (int ri = 0; ri < size; ri++)
+                for (int ci = 0; ci < ImageSize; ci++)
+                    for (int ri = 0; ri < ImageSize; ri++)
                         result[ci][ri] = _tile[ri+1][ci+1];
 
                 // transform
@@ -146,7 +147,20 @@ namespace Solutions
                 if (Rotation == 0)
                     return result;
 
-                if (Rotation == 2)
+                if (Rotation == 1 || Rotation == 3)
+                {
+                    var copy = new char[ImageSize][];
+                    for (int ci = 0; ci < ImageSize; ci++)
+                        copy[ci] = new char[ImageSize];
+
+                    for (int ri = 0; ri < ImageSize; ri++)
+                    for (int ci = 0; ci < ImageSize; ci++)
+                        copy[(ImageSize-ri)-1][ci] = result[ci][ri];
+
+                    result = copy;
+                }
+
+                if (Rotation == 2 || Rotation == 4)
                 {
                     Array.Reverse(result);
                     foreach (var column in result)
@@ -271,13 +285,44 @@ namespace Solutions
             return tilesMap;
         }
 
-        public char[][] ConvertTilesMapToImage(Tile[][] tilesMap)
+        public static char[][] ConvertTilesMapToImage(Tile[][] tilesMap)
         {
             // check assumption that tiles map is square
             foreach (var tilesLine in tilesMap)
                 System.Diagnostics.Debug.Assert(tilesLine.Length == tilesMap.Length);
 
-            return new char[0][];
+            var width = tilesMap.Length;
+            var height = width;
+
+            var tileImageSize = tilesMap[0][0].ImageSize;
+
+            var image = new char[width*tileImageSize][];
+            for (int i = 0; i < image.Length; i++)
+                image[i] = new char[image.Length];
+
+            for (int wi = 0; wi < width; wi++)
+            for (int hi = 0; hi < height; hi++)
+            {
+                var tile = tilesMap[wi][hi];
+                var tileImage = tile.GetTileImageAccordingToCurrentTransformation();
+
+                /*
+                Console.WriteLine(tile.Id);
+                for (int ri = 0; ri < tileImageSize; ri++)
+                {
+                    for (int ci = 0; ci < tileImageSize; ci++)
+                        Console.Write(tileImage[ci][ri]);
+                    Console.WriteLine();
+                }
+                Console.WriteLine();
+                */
+
+                for (int ci = 0; ci < tileImageSize; ci++)
+                for (int ri = 0; ri < tileImageSize; ri++)
+                    image[(tileImageSize*wi)+ci][(tileImageSize*hi)+ri] = tileImage[ci][ri];
+            }
+
+            return image;
         }
 
         public UInt64 Solve1(string[] tilesStrings)

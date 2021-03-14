@@ -180,8 +180,17 @@ namespace Solutions
                 "..#.###...",
             });
 
-            Day20.AssembleTiles(tiles);
-            Day20.AssembleTiles(Day20.Tile.ParseTiles(Day20.PUZZLE_INPUT));
+            var image = Day20.ConvertTilesMapToImage(Day20.AssembleTiles(tiles));
+
+            var imageSize = image.Length;
+            for (int ri = 0; ri < imageSize; ri++)
+            {
+                for (int ci = 0; ci < imageSize; ci++)
+                    Console.Write(image[ci][ri]);
+                Console.WriteLine();
+            }
+
+            //Day20.ConvertTilesMapToImage(Day20.AssembleTiles(Day20.Tile.ParseTiles(Day20.PUZZLE_INPUT)));
 
             //Console.WriteLine((new Day21()).Solve1(Day21.PUZZLE_INPUT));
             //Console.WriteLine((new Day21()).Solve2(Day21.PUZZLE_INPUT));
