@@ -23,10 +23,10 @@ namespace Solutions
                 Left   = 3,
             }
 
-            private const int NUMBER_OF_ROTATIONS = 4;
+            public static readonly int NUMBER_OF_FLIPS = Enum.GetValues<Flip>().Length;
+            public const int NUMBER_OF_ROTATIONS = 4;
 
-
-            public static readonly int NUMBER_OF_POSSIBLE_TRANSFORMATIONS = NUMBER_OF_ROTATIONS * Enum.GetValues<Flip>().Length;
+            public static readonly int NUMBER_OF_POSSIBLE_TRANSFORMATIONS = NUMBER_OF_ROTATIONS * NUMBER_OF_FLIPS;
 
             // stored by lines, so [rowIndex][columnIndex]
             private char[][]  _tile;
@@ -160,7 +160,7 @@ namespace Solutions
                     result = copy;
                 }
 
-                if (Rotation == 2 || Rotation == 4)
+                if (Rotation == 2 || Rotation == 3)
                 {
                     Array.Reverse(result);
                     foreach (var column in result)
@@ -183,7 +183,7 @@ namespace Solutions
 
             public override string ToString()
             {
-                return $"{Id}";
+                return $"{Id}, Fliped: {Fliped}, Rotation: {Rotation}";
             }
 
             public static Tile[] ParseTiles(string[] tilesLine)
@@ -325,6 +325,71 @@ namespace Solutions
             return image;
         }
 
+        public static char[][] MarkPatternInImage(char[][] image, string[] pattern, char markChar)
+        {
+            // check assumption that all pattern lines are the same length
+            foreach (var patternLine in pattern)
+                System.Diagnostics.Debug.Assert(patternLine.Length == pattern[0].Length);
+
+            // check assumption that all image rows are the same length and that the image is squared
+            foreach (var imageColumn in image)
+                System.Diagnostics.Debug.Assert(imageColumn.Length == image.Length);
+
+            var imageSize     = image.Length;
+            var patternWidth  = pattern[0].Length;
+            var patternHeight = pattern.Length;
+
+            bool found = false;
+            void MarkIfMatches(int w, int h)
+            {
+                // does the pattern fit
+                if (w+patternWidth-1  >= imageSize ||
+                    h+patternHeight-1 >= imageSize)
+                  return;
+
+                for (int wi = 0; wi < patternWidth; wi++)
+                for (int hi = 0; hi < patternHeight; hi++)
+                    if (pattern[hi][wi] == '#' && image[w+wi][h+hi] != pattern[hi][wi])
+                        return;
+
+                found = true;
+
+                for (int wi = 0; wi < patternWidth; wi++)
+                for (int hi = 0; hi < patternHeight; hi++)
+                    if (pattern[hi][wi] == '#' && image[w+wi][h+hi] == pattern[hi][wi])
+                        image[w+wi][h+hi] = markChar;
+            }
+
+            for (int fi = 0; fi < Tile.NUMBER_OF_FLIPS; fi++)
+            {
+                for (int rc = 0; rc < Tile.NUMBER_OF_ROTATIONS; rc++)
+                {
+                    for (int wi = 0; wi < imageSize - patternWidth + 1; wi++)
+                    for (int hi = 0; hi < imageSize - patternHeight + 1; hi++)
+                        MarkIfMatches(wi, hi);
+
+                    if (found)
+                        return image;
+
+                    // rotation
+                    var copy = new char[imageSize][];
+                    for (int ci = 0; ci < imageSize; ci++)
+                        copy[ci] = new char[imageSize];
+
+                    for (int ri = 0; ri < imageSize; ri++)
+                    for (int ci = 0; ci < imageSize; ci++)
+                        copy[(imageSize-ri)-1][ci] = image[ci][ri];
+
+                    image = copy;
+                }
+
+                foreach (var imageColumn in image)
+                    Array.Reverse(imageColumn);
+            }
+
+            return null;
+        }
+
         public UInt64 Solve1(string[] tilesStrings)
         {
             var tiles = Tile.ParseTiles(tilesStrings);
@@ -347,10 +412,34 @@ namespace Solutions
             var tiles          = Tile.ParseTiles(tilesStrings);
             var assembledTiles = AssembleTiles(tiles);
             var image          = ConvertTilesMapToImage(assembledTiles);
+            var markedImage    = MarkPatternInImage(image, SEA_MONSTER_PATTERN, 'O');
 
-            return 0ul;
+            if (markedImage == null)
+                throw new Exception("Pattern not found");
+
+            UInt64 remaingWatterCount = 0ul;
+
+            var size = markedImage.Length;
+            for (int i = 0; i < size; i++)
+            {
+                for (int j = 0; j < size; j++)
+                {
+                    Console.Write(markedImage[j][i]);
+                    if (markedImage[i][j] == '#')
+                        remaingWatterCount += 1ul;
+                }
+                Console.WriteLine();
+            }
+
+            return remaingWatterCount;
         }
 
+        public static readonly string[] SEA_MONSTER_PATTERN =
+        {
+            "                  # ",
+            "#    ##    ##    ###",
+            " #  #  #  #  #  #   ",
+        };
 
         public static readonly string[] PUZZLE_INPUT =
         {

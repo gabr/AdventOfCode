@@ -176,13 +176,12 @@ namespace Solutions
                 day.Solve1(Day20.PUZZLE_INPUT));
         }
 
-        /*
         [TestMethod]
         public void Test2FromExample()
         {
             var day = new Day20();
             Assert.AreEqual(
-                ,
+                273ul,
                 day.Solve2(TEST_INPUT));
         }
 
@@ -191,10 +190,9 @@ namespace Solutions
         {
             var day = new Day20();
             Assert.AreEqual(
-                ,
+                2084ul,
                 day.Solve2(Day20.PUZZLE_INPUT));
         }
-        */
 
     }
 }
