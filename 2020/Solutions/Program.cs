@@ -69,8 +69,6 @@ namespace Solutions
             //Console.WriteLine((new Day20()).Solve1(Day20.PUZZLE_INPUT));
             //Console.WriteLine((new Day20()).Solve2(Day20.PUZZLE_INPUT));
 
-            //Day20.AssembleTilesIntoImage(Day20.Tile.ParseTiles(Day20.PUZZLE_INPUT));
-
             var tiles = Day20.Tile.ParseTiles(new []
             {
                 "Tile 2311:",
@@ -181,7 +179,9 @@ namespace Solutions
                 "..#.......",
                 "..#.###...",
             });
-            Day20.AssembleTilesIntoImage(tiles);
+
+            Day20.AssembleTiles(tiles);
+            Day20.AssembleTiles(Day20.Tile.ParseTiles(Day20.PUZZLE_INPUT));
 
             //Console.WriteLine((new Day21()).Solve1(Day21.PUZZLE_INPUT));
             //Console.WriteLine((new Day21()).Solve2(Day21.PUZZLE_INPUT));

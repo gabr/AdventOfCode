@@ -9,114 +9,128 @@ namespace Solutions
     {
         public class Tile
         {
-            public UInt64   Id            { get; private set; }
-            public int[][]  PossibleEdges { get; private set; }
-            public string[] Lines         { get; private set; }
+            private enum Flip : int
+            {
+                NotFliped = 0,
+                Fliped    = 1
+            }
 
-            public bool Used = false;
+            private enum Edge : int
+            {
+                Top    = 0,
+                Right  = 1,
+                Bottom = 2,
+                Left   = 3,
+            }
 
-            public int Transformation = 0;
-            public int Rotation       = 0;
+            private const int NUMBER_OF_ROTATIONS = 4;
 
-            public int TopEdge    { get => PossibleEdges[Transformation][(0+Rotation)%4]; }
-            public int RightEdge  { get => PossibleEdges[Transformation][(1+Rotation)%4]; }
-            public int BottomEdge { get => PossibleEdges[Transformation][(2+Rotation)%4]; }
-            public int LeftEdge   { get => PossibleEdges[Transformation][(3+Rotation)%4]; }
+
+            public static readonly int NUMBER_OF_POSSIBLE_TRANSFORMATIONS = NUMBER_OF_ROTATIONS * Enum.GetValues<Flip>().Length;
+
+            private char[][]     _tile;
+            private string[][][] _possibleEdges;
+
+            public UInt64 Id       { get; private set; }
+            public bool   Fliped   { get; private set; } = false;
+            public int    Rotation { get; private set; } = 0;
+            public bool   Used     { get;         set; } = false;
+
+            public string TopEdge    { get => _possibleEdges[(int)(Fliped ? Flip.Fliped : Flip.NotFliped)][Rotation][(int)(Edge.Top)]; }
+            public string RightEdge  { get => _possibleEdges[(int)(Fliped ? Flip.Fliped : Flip.NotFliped)][Rotation][(int)(Edge.Right)]; }
+            public string BottomEdge { get => _possibleEdges[(int)(Fliped ? Flip.Fliped : Flip.NotFliped)][Rotation][(int)(Edge.Bottom)]; }
+            public string LeftEdge   { get => _possibleEdges[(int)(Fliped ? Flip.Fliped : Flip.NotFliped)][Rotation][(int)(Edge.Left)]; }
 
             public Tile(string[] tileLines)
             {
-                Lines = tileLines.Skip(1).ToArray();
+                _tile = tileLines
+                    .Skip(1)
+                    .Select(l => l.ToCharArray())
+                    .ToArray();
 
                 string idLine = tileLines[0];
                 Id = UInt64.Parse(idLine.Substring(5, idLine.Length - 6));
 
-                char[] top    = new char[10];
-                char[] right  = new char[10];
-                char[] bottom = new char[10];
-                char[] left   = new char[10];
-
-                char CharToDigit(char c) => (c == '.' ? '0' : '1');
-
-                for (int i = 0; i < 10; i++)
+                _possibleEdges = new string[Enum.GetValues<Flip>().Length][][];
+                for (int i = 0; i < _possibleEdges.Length; i++)
                 {
-                    top[i]    = CharToDigit(tileLines[1][i]);
-                    bottom[i] = CharToDigit(tileLines[10][i]);
-
-                    left[i]   = CharToDigit(tileLines[i + 1][0]);
-                    right[i]  = CharToDigit(tileLines[i + 1][9]);
+                    _possibleEdges[i] = new string[Enum.GetValues<Edge>().Length][];
+                    for (int j = 0; j < _possibleEdges[i].Length; j++)
+                        _possibleEdges[i][j] = new string[NUMBER_OF_ROTATIONS];
                 }
 
-                PossibleEdges = new int[4][];
+                int edgeLength = _tile[0].Length;
+                var top    = new char[edgeLength];
+                var right  = new char[edgeLength];
+                var bottom = new char[edgeLength];
+                var left   = new char[edgeLength];
 
-                PossibleEdges[0] = new int[]
+                for (int i = 0; i < edgeLength; i++)
                 {
-                    Convert.ToInt32(new String(top), 2),
-                    Convert.ToInt32(new String(right), 2),
-                    Convert.ToInt32(new String(bottom), 2),
-                    Convert.ToInt32(new String(left), 2),
-                };
+                    top[i]    = _tile[0][i];
+                    right[i]  = _tile[i][edgeLength -1];
+                    bottom[i] = _tile[edgeLength -1][i];
+                    left[i]   = _tile[i][0];
+                }
 
-                Array.Reverse(top);
-                Array.Reverse(bottom);
-
-                PossibleEdges[1] = new int[]
+                var tmp = new char[edgeLength];
+                for (int ri = 0; ri < NUMBER_OF_ROTATIONS; ri++)
                 {
-                    Convert.ToInt32(new String(top), 2),
-                    Convert.ToInt32(new String(left), 2),
-                    Convert.ToInt32(new String(bottom), 2),
-                    Convert.ToInt32(new String(right), 2),
-                };
+                    _possibleEdges[(int)(Flip.NotFliped)][ri][(int)(Edge.Top)]    = new String(top);
+                    _possibleEdges[(int)(Flip.NotFliped)][ri][(int)(Edge.Right)]  = new String(right);
+                    _possibleEdges[(int)(Flip.NotFliped)][ri][(int)(Edge.Bottom)] = new String(bottom);
+                    _possibleEdges[(int)(Flip.NotFliped)][ri][(int)(Edge.Left)]   = new String(left);
 
-                Array.Reverse(top);
-                Array.Reverse(bottom);
-                Array.Reverse(left);
+                    // rotate
+                    tmp    = left;
+                    left   = bottom;
+                    bottom = right;
+                    right  = top;
+                    top    = tmp;
+
+                    Array.Reverse(top);
+                    Array.Reverse(bottom);
+                }
+
+                // flip
                 Array.Reverse(right);
-
-                PossibleEdges[2] = new int[]
-                {
-                    Convert.ToInt32(new String(bottom), 2),
-                    Convert.ToInt32(new String(right), 2),
-                    Convert.ToInt32(new String(top), 2),
-                    Convert.ToInt32(new String(left), 2),
-                };
-
-                Array.Reverse(top);
-                Array.Reverse(bottom);
                 Array.Reverse(left);
-                Array.Reverse(right);
+                tmp    = bottom;
+                bottom = top;
+                top    = tmp;
 
-                PossibleEdges[3] = new int[]
+                for (int ri = 0; ri < NUMBER_OF_ROTATIONS; ri++)
                 {
-                    Convert.ToInt32(new String(bottom), 2),
-                    Convert.ToInt32(new String(left), 2),
-                    Convert.ToInt32(new String(top), 2),
-                    Convert.ToInt32(new String(right), 2),
-                };
-            }
+                    _possibleEdges[(int)(Flip.Fliped)][ri][(int)(Edge.Top)]    = new String(top);
+                    _possibleEdges[(int)(Flip.Fliped)][ri][(int)(Edge.Right)]  = new String(right);
+                    _possibleEdges[(int)(Flip.Fliped)][ri][(int)(Edge.Bottom)] = new String(bottom);
+                    _possibleEdges[(int)(Flip.Fliped)][ri][(int)(Edge.Left)]   = new String(left);
 
-            public void ResetTrasfrmation()
-            {
-                Rotation       = 0;
-                Transformation = 0;
+                    // rotate
+                    tmp    = left;
+                    left   = bottom;
+                    bottom = right;
+                    right  = top;
+                    top    = tmp;
+
+                    Array.Reverse(top);
+                    Array.Reverse(bottom);
+                }
             }
 
             public void SwitchToNextTransformation()
             {
                 Rotation += 1;
 
-                if (Rotation >= 4)
-                {
+                if (Rotation == NUMBER_OF_ROTATIONS) {
                     Rotation = 0;
-                    Transformation += 1;
-
-                    if (Transformation >= 4)
-                        Transformation = 0;
+                    Fliped = !Fliped;
                 }
             }
 
             public override string ToString()
             {
-                return $"{Id}: [{string.Join(", ", PossibleEdges.Select(e => $"[{string.Join(", ", e.Select(i => i.ToString().PadLeft(3, ' ')))}]"))}]";
+                return $"{Id}";
             }
 
             public static Tile[] ParseTiles(string[] tilesLinesg)
@@ -145,84 +159,11 @@ namespace Solutions
 
         }
 
-        public static bool IsCornerTile(Tile tile, Tile[] tiles)
-        {
-            var edgeNeighbors = new int[4];
-
-            //Console.WriteLine($"Testing: {tile}");
-
-            for (int i = 0; i < 4; i++)
-            {
-                for (int e = 0; e < 4; e++)
-                    edgeNeighbors[e] = 0;
-
-                for (int j = 0; j < 4; j++)
-                {
-                    foreach (var t in tiles)
-                    {
-                        if (t == tile)
-                            continue;
-
-                        for (int e = 0; e < 4; e++)
-                            if (Array.IndexOf(t.PossibleEdges[j], tile.PossibleEdges[i][e]) != -1)
-                            {
-                                //Console.WriteLine($"Found match: {t.Id}: [{string.Join(", ", t.PossibleEdges[j])}] == [{i}][{e}] {tile.PossibleEdges[i][e]}");
-                                edgeNeighbors[e] += 1;
-                            }
-                    }
-                }
-
-                //Console.WriteLine($"PossibleEdges: {string.Join(", ", edgeNeighbors)}");
-
-                bool edge =
-                    (edgeNeighbors[0] == 0 && edgeNeighbors[1] == 0) ||
-                    (edgeNeighbors[1] == 0 && edgeNeighbors[2] == 0) ||
-                    (edgeNeighbors[2] == 0 && edgeNeighbors[3] == 0) ||
-                    (edgeNeighbors[3] == 0 && edgeNeighbors[0] == 0);
-
-                if (edge == false)
-                    return false;
-            }
-
-            return true;
-        }
-
-        public Tile[] FindCornerTiles(Tile[] tiles)
-        {
-            var tilesWithJust2PossibleNeighbours = new List<Tile>(10);
-
-            foreach (var tile in tiles)
-            {
-                if (IsCornerTile(tile, tiles))
-                {
-                    //Console.WriteLine("Corner tile: " + tile.ToString());
-                    tilesWithJust2PossibleNeighbours.Add(tile);
-                }
-            }
-
-            if (tilesWithJust2PossibleNeighbours.Count != 4)
-                throw new Exception($"Expecte 4 tiles but got ({tilesWithJust2PossibleNeighbours.Count}): {string.Join(", ", tilesWithJust2PossibleNeighbours.Select(t => t.Id))}");
-
-            return tilesWithJust2PossibleNeighbours.ToArray();
-        }
-
-        public static string[] AssembleTilesIntoImage(Tile[] tiles)
+        public static Tile[][] AssembleTiles(Tile[] tiles)
         {
             // square image
             int width = (int)Math.Sqrt(tiles.Length);
             int height = width;
-
-            //foreach (var tile in tiles)
-            //    Console.WriteLine($"tile: {tile}");
-
-            // find first corner tile, we will start assembling from it
-            Tile cornerTile = null;
-            foreach (var tile in tiles)
-                if (IsCornerTile(tile, tiles))
-                {
-                    cornerTile = tile;
-                    break;
-                }
 
             // start assembling the tiles together
             var tilesMap = new Tile[width][];
@@ -236,7 +177,6 @@ namespace Solutions
                     (h <= 0 || tilesMap[w  ][h-1].BottomEdge == tile.TopEdge);
             }
 
-            cornerTile.Used = true;
             bool FindNextTile(int w, int h, string indent)
             {
                 if (h == height)
@@ -259,12 +199,10 @@ namespace Solutions
                     tile.Used = true;
                     tilesMap[w][h] = tile;
 
-                    for (int i = 0; i < 4*4; i++)
+                    for (int i = 0; i < Tile.NUMBER_OF_POSSIBLE_TRANSFORMATIONS; i++)
                     {
-                        //Console.WriteLine($"{indent}tile [{w}][{h}]: {tile.Id}  testing: trasformation: {tile.Transformation}, rotation: {tile.Rotation}");
                         if (TileMatchesNeighbours(tile, w, h))
                         {
-                            //Console.WriteLine($"{indent}tile [{w}][{h}]: {tile.Id}  fits: trasformation: {tile.Transformation}, rotation: {tile.Rotation}");
                             if (FindNextTile(nextW, nextH, indent + " "))
                                 return true;
                         }
@@ -279,19 +217,7 @@ namespace Solutions
                 return false;
             }
 
-            tilesMap[0][0] = cornerTile;
-            bool found = false;
-            for (int i = 0; i < 4*4; i++)
-            {
-                var tile= cornerTile;
-                //Console.WriteLine($"tile [0][0]: {tile.Id}  fits: trasformation: {tile.Transformation}, rotation: {tile.Rotation}");
-                found = FindNextTile(1, 0, " ");
-                if (found)
-                    break;
-
-                cornerTile.SwitchToNextTransformation();
-            }
-
+            bool found = FindNextTile(0, 0, "");
             if (found == false)
                 throw new Exception("Tiles filed to assemble");
 
@@ -303,17 +229,22 @@ namespace Solutions
                 Console.WriteLine();
             }
 
-            return new string[0];
+            return tilesMap;
         }
 
         public UInt64 Solve1(string[] tilesStrings)
         {
             var tiles = Tile.ParseTiles(tilesStrings);
-            var cornerTiles = FindCornerTiles(tiles);
+            var assembledTiles = AssembleTiles(tiles);
+
+            var maxIndex = assembledTiles[0].Length-1;
 
             UInt64 sum = 1ul;
-            foreach (var tile in cornerTiles)
-                sum *= (UInt64)tile.Id;
+
+            sum *= (UInt64)assembledTiles[0       ][0       ].Id;
+            sum *= (UInt64)assembledTiles[0       ][maxIndex].Id;
+            sum *= (UInt64)assembledTiles[maxIndex][0       ].Id;
+            sum *= (UInt64)assembledTiles[maxIndex][maxIndex].Id;
 
             return sum;
         }
@@ -321,7 +252,7 @@ namespace Solutions
         public UInt64 Solve2(string[] tilesStrings)
         {
             var tiles = Tile.ParseTiles(tilesStrings);
-            var image = AssembleTilesIntoImage(tiles);
+            var image = AssembleTiles(tiles);
 
             return 0ul;
         }
