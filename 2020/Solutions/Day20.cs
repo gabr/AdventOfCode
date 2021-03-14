@@ -56,16 +56,15 @@ namespace Solutions
                     Convert.ToInt32(new String(left), 2),
                 };
 
-
                 Array.Reverse(top);
                 Array.Reverse(bottom);
 
                 PossibleEdges[1] = new int[]
                 {
                     Convert.ToInt32(new String(top), 2),
-                    Convert.ToInt32(new String(right), 2),
-                    Convert.ToInt32(new String(bottom), 2),
                     Convert.ToInt32(new String(left), 2),
+                    Convert.ToInt32(new String(bottom), 2),
+                    Convert.ToInt32(new String(right), 2),
                 };
 
                 Array.Reverse(left);
@@ -73,9 +72,9 @@ namespace Solutions
 
                 PossibleEdges[2] = new int[]
                 {
-                    Convert.ToInt32(new String(top), 2),
-                    Convert.ToInt32(new String(right), 2),
                     Convert.ToInt32(new String(bottom), 2),
+                    Convert.ToInt32(new String(right), 2),
+                    Convert.ToInt32(new String(top), 2),
                     Convert.ToInt32(new String(left), 2),
                 };
 
@@ -84,10 +83,10 @@ namespace Solutions
 
                 PossibleEdges[3] = new int[]
                 {
-                    Convert.ToInt32(new String(top), 2),
-                    Convert.ToInt32(new String(right), 2),
                     Convert.ToInt32(new String(bottom), 2),
                     Convert.ToInt32(new String(left), 2),
+                    Convert.ToInt32(new String(top), 2),
+                    Convert.ToInt32(new String(right), 2),
                 };
             }
 
@@ -141,7 +140,6 @@ namespace Solutions
             }
 
         }
-
 
         public static bool IsCornerTile(Tile tile, Tile[] tiles)
         {
@@ -210,8 +208,8 @@ namespace Solutions
             int width = (int)Math.Sqrt(tiles.Length);
             int height = width;
 
-            foreach (var tile in tiles)
-                Console.WriteLine($"tile: {tile}");
+            //foreach (var tile in tiles)
+            //    Console.WriteLine($"tile: {tile}");
 
             // find first corner tile, we will start assembling from it
             Tile cornerTile = null;
@@ -259,9 +257,10 @@ namespace Solutions
 
                     for (int i = 0; i < 4*4; i++)
                     {
+                        //Console.WriteLine($"{indent}tile [{w}][{h}]: {tile.Id}  testing: trasformation: {tile.Transformation}, rotation: {tile.Rotation}");
                         if (TileMatchesNeighbours(tile, w, h))
                         {
-                            Console.WriteLine($"{indent}tile [{w}][{h}]: {tile.Id}  fits: trasformation: {tile.Transformation}, rotation: {tile.Rotation}");
+                            //Console.WriteLine($"{indent}tile [{w}][{h}]: {tile.Id}  fits: trasformation: {tile.Transformation}, rotation: {tile.Rotation}");
                             if (FindNextTile(nextW, nextH, indent + " "))
                                 return true;
                         }
@@ -281,7 +280,7 @@ namespace Solutions
             for (int i = 0; i < 4*4; i++)
             {
                 var tile= cornerTile;
-                Console.WriteLine($"tile [0][0]: {tile.Id}  fits: trasformation: {tile.Transformation}, rotation: {tile.Rotation}");
+                //Console.WriteLine($"tile [0][0]: {tile.Id}  fits: trasformation: {tile.Transformation}, rotation: {tile.Rotation}");
                 found = FindNextTile(1, 0, " ");
                 if (found)
                     break;
@@ -292,15 +291,13 @@ namespace Solutions
             if (found == false)
                 throw new Exception("Tiles filed to assemble");
 
-            Console.Write("FOUND");
+            Console.WriteLine("FOUND:");
             for (int h = 0; h < height; h++)
             {
                 for (int w = 0; w < width; w++)
                     Console.Write($"{tilesMap[w][h].Id}  ");
                 Console.WriteLine();
             }
-
-            throw new Exception("Printing");
 
             return new string[0];
         }
