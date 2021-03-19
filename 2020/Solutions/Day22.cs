@@ -24,6 +24,20 @@ namespace Solutions
             return (deck1, deck2);
         }
 
+        public int CalculateDecsScore(Queue<int> deck)
+        {
+            int score = 0;
+            int deckSize = deck.Count;
+
+            foreach (var card in deck)
+            {
+                score += (card * deckSize);
+                deckSize -= 1;
+            }
+
+            return score;
+        }
+
         public int Solve1(string[] decks)
         {
             (var deck1, var deck2) = GetPlayersDecks(decks);
@@ -49,15 +63,54 @@ namespace Solutions
             }
 
             var winDeck = deck1.Count == 0 ? deck2 : deck1;
+            return CalculateDecsScore(winDeck);
+        }
 
-            int score = 0;
-            while (winDeck.Count > 0)
+        public int Solve2(string[] decks)
+        {
+            (var deck1, var deck2) = GetPlayersDecks(decks);
+
+            string CreateDecksSnapshot(Queue<int> d1, Queue<int> d2) =>
+                string.Join(' ', d1) + " | " + string.Join(' ', d2);
+
+            // returns true if deck1 wins
+            bool Play(Queue<int> d1, Queue<int> d2)
             {
-                int multiplier = winDeck.Count;
-                score += (winDeck.Dequeue() * multiplier);
+                var decksHistory = new HashSet<string>();
+                while (d1.Count > 0 && d2.Count > 0)
+                {
+                    var snapshot = CreateDecksSnapshot(d1, d2);
+                    if (decksHistory.Contains(snapshot))
+                        return true;
+
+                    decksHistory.Add(snapshot);
+
+                    var p1 = d1.Dequeue();
+                    var p2 = d2.Dequeue();
+
+                    bool p1wins = p1 > p2;
+                    if (d1.Count >= p1 && d2.Count >= p2)
+                        p1wins = Play(
+                            new Queue<int>(d1.Take(p1)),
+                            new Queue<int>(d2.Take(p2)));
+
+                    if (p1wins)
+                    {
+                        d1.Enqueue(p1);
+                        d1.Enqueue(p2);
+                    }
+                    else
+                    {
+                        d2.Enqueue(p2);
+                        d2.Enqueue(p1);
+                    }
+                }
+
+                return d1.Count > 0;
             }
 
-            return score;
+            bool player1win = Play(deck1, deck2);
+            return CalculateDecsScore(player1win ? deck1 : deck2);
         }
 
 

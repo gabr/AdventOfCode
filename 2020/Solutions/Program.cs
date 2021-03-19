@@ -67,13 +67,13 @@ namespace Solutions
             //Console.WriteLine((new Day19()).Solve2(Day19.PUZZLE_INPUT));
 
             //Console.WriteLine((new Day20()).Solve1(Day20.PUZZLE_INPUT));
-            Console.WriteLine((new Day20()).Solve2(Day20.PUZZLE_INPUT));
+            //Console.WriteLine((new Day20()).Solve2(Day20.PUZZLE_INPUT));
 
             //Console.WriteLine((new Day21()).Solve1(Day21.PUZZLE_INPUT));
             //Console.WriteLine((new Day21()).Solve2(Day21.PUZZLE_INPUT));
 
-            //Console.WriteLine((new Day22()).Solve1(Day22.PUZZLE_INPUT));
-            //Console.WriteLine((new Day22()).Solve2(Day22.PUZZLE_INPUT));
+            Console.WriteLine((new Day22()).Solve1(Day22.PUZZLE_INPUT));
+            Console.WriteLine((new Day22()).Solve2(Day22.PUZZLE_INPUT));
 
             //Console.WriteLine((new Day23()).Solve1(Day23.PUZZLE_INPUT, 100));
             //Console.WriteLine((new Day23()).Solve2(Day23.PUZZLE_INPUT, 10000000ul));

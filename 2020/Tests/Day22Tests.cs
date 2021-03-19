@@ -41,23 +41,25 @@ namespace Solutions
                 day.Solve1(Day22.PUZZLE_INPUT));
         }
 
-        //[TestMethod]
-        //public void Test2FromExample()
-        //{
-        //    var day = new Day22();
-        //    Assert.AreEqual(
-        //        ,
-        //        day.Solve2(TEST_INPUT));
-        //}
+        [TestMethod]
+        public void Test2FromExample()
+        {
+            var day = new Day22();
+            Assert.AreEqual(
+                291,
+                day.Solve2(TEST_INPUT));
+        }
 
-        //[TestMethod]
-        //public void Test2PuzzleInput()
-        //{
-        //    var day = new Day22();
-        //    Assert.AreEqual(
-        //        ,
-        //        day.Solve2(Day22.PUZZLE_INPUT));
-        //}
+        /*
+        [TestMethod]
+        public void Test2PuzzleInput()
+        {
+            var day = new Day22();
+            Assert.AreEqual(
+                ,
+                day.Solve2(Day22.PUZZLE_INPUT));
+        }
+        */
 
     }
 }
