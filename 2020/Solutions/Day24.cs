@@ -7,7 +7,6 @@ namespace Solutions
 {
     public class Day24
     {
-
         public (int X, int Y) Get2dCoordinates(string tile)
         {
             int x = 0;
@@ -58,11 +57,22 @@ namespace Solutions
             return (x, y);
         }
 
-        public int Solve1(string[] tiles)
+        public string CoordinatesToString(int x, int y) => $"{x},{y}";
+
+        public (int x, int y) StringToCoordinates(string xy)
+        {
+            var s = xy.Split(',');
+            return (
+                int.Parse(s[0]),
+                int.Parse(s[1])
+            );
+        }
+
+        public HashSet<string> FlipTiles(string[] tilesToFlip)
         {
             var flippedTiles = new HashSet<string>();
 
-            foreach (var tile in tiles)
+            foreach (var tile in tilesToFlip)
             {
                 (var x, var y) = Get2dCoordinates(tile);
                 var coordinates = $"{x},{y}";
@@ -73,7 +83,165 @@ namespace Solutions
                     flippedTiles.Add(coordinates);
             }
 
+            return flippedTiles;
+        }
+
+        public int Solve1(string[] tiles)
+        {
+            var flippedTiles = FlipTiles(tiles);
             return flippedTiles.Count;
+        }
+
+        public int Solve2(string[] tilesDirections)
+        {
+            int size = 500*2;
+            var tilesGrid = new bool[size * size];
+
+            int GetTileIndex(int x, int y) => x+(y*size);
+            (int x, int y) GetCoordinatesFromIndex(int index) => (index % size, index / size);
+
+            int GetTileIndexFromDirections(string directions)
+            {
+                int x = size/2;
+                int y = size/2;
+
+                int i = 0;
+                while (i < directions.Length)
+                {
+                    if (directions[i] == 'e')
+                    {
+                        x += 1;
+                        i += 1;
+                        continue;
+                    }
+
+                    if (directions[i] == 'w')
+                    {
+                        x -= 1;
+                        i += 1;
+                        continue;
+                    }
+
+                    bool isEven = y % 2 == 0;
+                    if (directions[i] == 's')
+                    {
+                        y -= 1;
+                        i += 1;
+                    }
+                    else if (directions[i] == 'n')
+                    {
+                        y += 1;
+                        i += 1;
+                    }
+
+                    if (isEven)
+                    {
+                        if (directions[i] == 'w')
+                            x -= 1;
+                    }
+                    else
+                    {
+                        if (directions[i] == 'e')
+                            x += 1;
+                    }
+                    i += 1;
+                }
+
+                return GetTileIndex(x, y);
+            }
+
+            foreach (var tileDirections in tilesDirections)
+            {
+                int index = GetTileIndexFromDirections(tileDirections);
+                tilesGrid[index] = !tilesGrid[index];
+            }
+
+            int flipedTilesCount = 0;
+            for (int i = 0; i < tilesGrid.Length; i++)
+                if (tilesGrid[i])
+                    flipedTilesCount += 1;
+
+            Console.WriteLine($"FlipedTiles: {flipedTilesCount}");
+
+            int[] GetNeighbours(int index)
+            {
+                (int x, int y) = GetCoordinatesFromIndex(index);
+
+                if (y % 2 == 0)
+                {
+                    return new int[]
+                    {
+                        GetTileIndex(x+1, y  ),
+                        GetTileIndex(x-1, y  ),
+                        GetTileIndex(x-1, y+1),
+                        GetTileIndex(x-1, y-1),
+                        GetTileIndex(x  , y+1),
+                        GetTileIndex(x  , y-1),
+                    };
+                }
+                else
+                {
+                    return new int[]
+                    {
+                        GetTileIndex(x+1, y  ),
+                        GetTileIndex(x-1, y  ),
+                        GetTileIndex(x+1, y+1),
+                        GetTileIndex(x+1, y-1),
+                        GetTileIndex(x  , y+1),
+                        GetTileIndex(x  , y-1),
+                    };
+                }
+            }
+
+            bool AmIBlackInNextRound(int index)
+            {
+                var amIBlack = tilesGrid[index];
+
+                var neighboursCount = 0;
+                var neighbours = GetNeighbours(index);
+                foreach (var neighbour in neighbours)
+                    if (tilesGrid[neighbour])
+                        neighboursCount += 1;
+
+                // Any black tile with zero or more than 2 black tiles immediately adjacent to it is flipped to white.
+                if (amIBlack)
+                {
+                    return !(neighboursCount == 0 || neighboursCount > 2);
+                }
+                // Any white tile with exactly 2 black tiles immediately adjacent to it is flipped to black.
+                else
+                {
+                    return neighboursCount == 2;
+                }
+            }
+
+            for (int i = 0; i < 100; i++)
+            {
+                var nextRound = new bool[tilesGrid.Length];
+                for (int ti = 0; ti < tilesGrid.Length; ti++)
+                {
+                    if (tilesGrid[ti] == false)
+                        continue;
+
+                    if (AmIBlackInNextRound(ti))
+                        nextRound[ti] = true;
+
+                    var neighbours = GetNeighbours(ti);
+                    foreach (var n in neighbours)
+                        if (AmIBlackInNextRound(n))
+                            nextRound[n] = true;
+                }
+
+                tilesGrid = nextRound;
+            }
+
+            flipedTilesCount = 0;
+            for (int i = 0; i < tilesGrid.Length; i++)
+                if (tilesGrid[i])
+                    flipedTilesCount += 1;
+            Console.WriteLine($"Koniec: {flipedTilesCount}");
+
+            return flipedTilesCount;
         }
 
 
