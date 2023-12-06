@@ -4,12 +4,13 @@ fn toDigit(c: u8) u8 {
     return c & 0b1111;
 }
 
-// example.b.txt: 281
-// input.txt:     56324
 pub fn main() !void {
     const stdout = std.io.getStdOut().writer();
     const stdin = std.io.getStdIn().reader();
+    try stdout.print("{d}\n", .{try solve(stdin)});
+}
 
+fn solve(reader: anytype) !u64 {
     var sum: u64 = 0;
     var last_digit_char: u8 = 0;
     var buff: [1024]u8 = undefined;
@@ -20,7 +21,7 @@ pub fn main() !void {
         // load line
         var i: usize = 0;
         while (true) {
-            const c = stdin.readByte() catch |err| switch (err) {
+            const c = reader.readByte() catch |err| switch (err) {
                 error.EndOfStream => {
                     input_has_content = false;
                     buff[i] = '\n';
@@ -68,5 +69,15 @@ pub fn main() !void {
         }
     }
 
-    try stdout.print("{d}\n", .{sum});
+    return sum;
 }
+
+
+fn test_solve(expected: u64, input_file_path: []const u8) !void {
+    const file = try std.fs.cwd().openFile(input_file_path, .{});
+    defer file.close();
+    try std.testing.expectEqual(expected, try solve(file.reader()));
+}
+test "01b example.a.txt" { try test_solve(142,   "./01/example.a.txt"); }
+test "01b example.b.txt" { try test_solve(281,   "./01/example.b.txt"); }
+test "01b input.txt"     { try test_solve(56324, "./01/input.txt"); }
