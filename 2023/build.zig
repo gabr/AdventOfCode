@@ -6,17 +6,26 @@ const debug     = std.debug;
 const Allocator = std.mem.Allocator;
 
 pub fn build(b: *std.Build) void {
-    var arena = std.heap.ArenaAllocator.init(std.heap.page_allocator);
-    defer arena.deinit();
-    const allocator = arena.allocator();
+    validateZigVersion(b, "0.12.0-dev.17");
 
     // extracted into separate function so I can handle potential errors just in one place
-    addExecutablesFromDirectories(b, allocator) catch |err| {
+    addExecutablesFromDirectories(b) catch |err| {
         log.err("error while looking for source files: '{s}'", .{ @errorName(err) });
     };
 }
 
-fn addExecutablesFromDirectories(b: *std.Build, allocator: Allocator) !void {
+// Iterate over directories in the build.zig location to find all .zig source
+// files and compile them.  Each file will result in single executable in the
+// zig-out/bin directory.  The zig-bin and zig-cache directories are ignored.
+// The output binaries names are the same as the source file names.
+//
+// Also all files are added to the single `test` step so you can
+// run all tests via a single `zig build test` command.
+fn addExecutablesFromDirectories(b: *std.Build) !void {
+    var arena = std.heap.ArenaAllocator.init(std.heap.page_allocator);
+    defer arena.deinit();
+    const allocator = arena.allocator();
+
     const target = b.standardTargetOptions(.{});
     const optimize = b.standardOptimizeOption(.{});
     const test_step = b.step("test", "Run unit tests");
@@ -58,5 +67,24 @@ fn addExecutablesFromDirectories(b: *std.Build, allocator: Allocator) !void {
             const run_exe_unit_tests = b.addRunArtifact(exe_unit_tests);
             test_step.dependOn(&run_exe_unit_tests.step);
         }
+    }
+}
+
+/// Runs "zig version" and compares with given value
+/// If versions are not equal it will halt the build process.
+fn validateZigVersion(b: *std.Build, expected_version_prefix: []const u8) void {
+    const version = mem.trimRight(u8, b.run(&[_][]const u8{ b.zig_exe, "version" }), "\n\t\r");
+    if (false == mem.startsWith(u8, version, expected_version_prefix)) {
+        debug.print(
+            "\n" ++
+            "  Stop, stop, stop!\n" ++
+            "  You're going to take someone's eye out.\n" ++
+            "  Besides, you're executing it wrong.\n" ++
+            "  It's zig version: {s}*\n" ++
+            "               not: {s}\n" ++
+            "\n" ++
+            "  Make sure to use the zig compiler in version: {s}\n\n",
+            .{ expected_version_prefix, version, expected_version_prefix } );
+        std.process.exit(1);
     }
 }
