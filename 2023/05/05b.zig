@@ -28,14 +28,14 @@ const Map = struct {
 };
 
 const ThreadContext = struct {
-    from:         MapType,
-    to:           MapType,
+    from:         usize,
+    to:           usize,
     maps:         []Map,
-    results:      []MapType,
+    results:      []usize,
     result_index: usize,
 
     pub fn run (ctx: *const ThreadContext) void {
-        var   min: MapType = maxInt(MapType);
+        var   min: usize = maxInt(usize);
         var   from = ctx.from;
         const to   = ctx.to;
         const maps = ctx.maps;
@@ -71,7 +71,7 @@ const ThreadContext = struct {
 fn solve(reader: anytype) !u64 {
     var buff: [2*1024]u8 = undefined;
     // parse seeds
-    var min_results: [100]MapType = undefined;
+    var min_results: [10000]usize = undefined;
     var seeds = try std.BoundedArray(MapType, min_results.len).init(0);
     const seeds_line = (try reader.readUntilDelimiterOrEof(&buff, '\n')).?[("seeds: ".len)..];
     var seeds_iterator = mem.tokenizeAny(u8, seeds_line, " ");
@@ -122,23 +122,50 @@ fn solve(reader: anytype) !u64 {
         .threads = &[_]std.Thread{},
     };
     try thread_pool.init(.{ .allocator = allocator });
-    var thread_contexts = try std.BoundedArray(ThreadContext, 100).init(0);
-    var seedsSlice = seeds.slice();
+    var thread_contexts = try std.BoundedArray(ThreadContext, 10000).init(0);
     var min_result_index: usize = 0;
+    // calculate work per thread
+    var total_work: usize = 0;
+    var seedsSlice = seeds.slice();
+    while (seedsSlice.len > 0) : (seedsSlice = seedsSlice[2..]) {
+        total_work += seedsSlice[1];
+    }
+    const work_per_thread = total_work / thread_pool.threads.len;
+    var work_to_redistribute = work_per_thread;
+    seedsSlice = seeds.slice();
     while (seedsSlice.len > 0) {
-        try thread_contexts.append(ThreadContext{
-            .from         = seedsSlice[0],
-            .to           = seedsSlice[0] + seedsSlice[1],
-            .maps         = maps,
-            .results      = &min_results,
-            .result_index = min_result_index,
-        });
-        try thread_pool.spawn(ThreadContext.run, .{&thread_contexts.buffer[thread_contexts.len-1]});
+        var   from: usize = seedsSlice[0];
+        var   to:   usize = from + seedsSlice[1];
+        const end:  usize = to;
+        while (true) {
+            var work_to_do: usize = 0;
+            if (to-from != 0) {
+                work_to_do = work_to_redistribute % (to-from);
+                if (work_to_do == 0) {
+                    work_to_do = to-from;
+                }
+            }
+            to = from + work_to_do;
+            try thread_contexts.append(ThreadContext{
+                .from         = from,
+                .to           = to,
+                .maps         = maps,
+                .results      = &min_results,
+                .result_index = min_result_index,
+            });
+            try thread_pool.spawn(ThreadContext.run, .{&thread_contexts.buffer[thread_contexts.len-1]});
+            min_result_index += 1;
+            if (work_to_do > work_to_redistribute) { work_to_redistribute = work_per_thread; }
+            else { work_to_redistribute -= work_to_do; }
+            if (work_to_redistribute < 0) work_to_redistribute = work_per_thread;
+            if (to == end) break;
+            from = to+1;
+            to = end;
+        }
         seedsSlice = seedsSlice[2..];
-        min_result_index += 1;
     }
     thread_pool.deinit();
-    var min_location: MapType = maxInt(MapType);
+    var min_location: usize = maxInt(usize);
     for (min_results[0..min_result_index]) |min|
         if (min < min_location) { min_location = min; };
     return min_location;
