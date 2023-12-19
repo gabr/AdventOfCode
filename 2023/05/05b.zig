@@ -25,8 +25,6 @@ const MapRange = struct {
 
 const Map = struct {
     ranges: []MapRange,
-    min:    MapType,
-    max:    MapType,
 };
 
 const ThreadContext = struct {
@@ -44,10 +42,7 @@ const ThreadContext = struct {
         while (from <= to) : (from += 1) {
             var value = from;
             for (maps) |map| {
-                // skip map if value not in range
-                // can't do that as there are holes in some inputs
-                //if (value < map.min or value > map.max) continue;
-                // binary search for min range
+                // binary search for range
                 var l: usize = 0;
                 var r: usize = map.ranges.len-1;
                 while (l+1 != r) {
@@ -55,8 +50,17 @@ const ThreadContext = struct {
                     if (value < map.ranges[m].src_min) { r = m; }
                     else { l = m; }
                 }
-                while (value > map.ranges[l].src_max) { l+=1; }
-                value = map.ranges[l].dst + (value - map.ranges[l].src_min);
+                while (l < map.ranges.len and value > map.ranges[l].src_max) { l+=1; }
+                if (l < map.ranges.len and value >= map.ranges[l].src_min) {
+                    value = map.ranges[l].dst + (value - map.ranges[l].src_min);
+                }
+                //value = map.ranges[l].dst + (value - map.ranges[l].src_min);
+                //for (map.ranges) |range| {
+                //    if (value >= range.src_min and value <= range.src_max) {
+                //        value = range.dst + (value - range.src_min);
+                //        break;
+                //    }
+                //}
             }
             if (value < min) min = value;
         }
@@ -90,8 +94,6 @@ fn solve(reader: anytype) !u64 {
             map_start_index = map_ranges_buffer.len;
             current_map = .{
                 .ranges = map_ranges_buffer.buffer[0..0],
-                .min = maxInt(MapType),
-                .max = 0,
             };
             continue;
         }
@@ -104,8 +106,6 @@ fn solve(reader: anytype) !u64 {
         };
         map_range.src_max -= 1;
         map_range.src_max += map_range.src_min;
-        if (map_range.src_min < current_map.min) current_map.min = map_range.src_min;
-        if (map_range.src_max > current_map.max) current_map.max = map_range.src_max;
         try map_ranges_buffer.append(map_range);
     }
     current_map.ranges = map_ranges_buffer.slice()[map_start_index..];
