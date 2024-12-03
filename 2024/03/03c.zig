@@ -1,13 +1,81 @@
 const std = @import("std");
 const dprint = std.debug.print;
-const c = @cImport({
-    @cInclude("regex.h");
-});
 
 pub fn main() !void {
     const stdout = std.io.getStdOut().writer();
     const stdin = std.io.getStdIn().reader();
     try stdout.print("{d}\n", .{try solve(stdin)});
+}
+
+fn Cregex(comptime captures_count: usize) type {
+    return struct {
+        preg: c.regex_t,
+
+        const c = @cImport({
+            @cInclude("regex.h");
+        });
+
+        const Self = @This();
+
+        pub fn init(regex: [:0]const u8) !Self {
+            var preg: c.regex_t = undefined;
+            const errcode = c.regcomp(&preg, regex, c.REG_EXTENDED);
+            if (!try errcodeToError(errcode)) unreachable;
+            return .{
+                .preg = preg,
+            };
+        }
+
+        pub const Match = struct {
+            pos: usize,
+            val: []const u8,
+        };
+
+        pub fn match(self: *Self, str: [:0]const u8) !?[captures_count]?Match {
+            var pmatch: [captures_count]c.regmatch_t = undefined;
+            const errcode = c.regexec(&self.preg, str, pmatch.len, &pmatch, 0);
+            if (!try errcodeToError(errcode)) return null;
+            var matches: [captures_count]?Match = undefined;
+            for (0..captures_count) |i| {
+                if (pmatch[i].rm_so == -1) {
+                    matches[i] = null;
+                } else {
+                    const so: usize = @intCast(pmatch[i].rm_so);
+                    const eo: usize = @intCast(pmatch[i].rm_eo);
+                    matches[i] = Match {
+                        .pos = so,
+                        .val = str[so..eo],
+                    };
+                }
+            }
+            return matches;
+        }
+
+        fn errcodeToError(errcode: c_int) !bool {
+            if (errcode == 0) return true;
+            switch (errcode) {
+                c.REG_NOMATCH  => return false,             // "The regexec() function failed to match"
+                c.REG_BADPAT   => return error.RegBadpat,   // "invalid regular expression"
+                c.REG_ECOLLATE => return error.RegEcollate, // "invalid collating element"
+                c.REG_ECTYPE   => return error.RegEctype,   // "invalid character class"
+                c.REG_EESCAPE  => return error.RegEescape,  // "‘\\’ applied to unescapable character"
+                c.REG_ESUBREG  => return error.RegEsubreg,  // "invalid backreference number"
+                c.REG_EBRACK   => return error.RegEbrack,   // "brackets ‘[ ]’ not balanced"
+                c.REG_EPAREN   => return error.RegEparen,   // "parentheses ‘( )’ not balanced"
+                c.REG_EBRACE   => return error.RegEbrace,   // "braces ‘{ }’ not balanced"
+                c.REG_BADBR    => return error.RegBadbr,    // "invalid repetition count(s) in ‘{ }’"
+                c.REG_ERANGE   => return error.RegErange,   // "invalid character range in ‘[ ]’"
+                c.REG_ESPACE   => return error.RegEspace,   // "ran out of memory"
+                c.REG_BADRPT   => return error.RegBadrpt,   // "‘?’, ‘*’, or ‘+’ operand invalid"
+                c.REG_EMPTY    => return error.RegEmpty,    // "empty (sub)expression"
+                c.REG_ASSERT   => return error.RegAssert,   // "cannot happen - you found a bug"
+                c.REG_INVARG   => return error.RegInvarg,   // "invalid argument, e.g. negative-length string"
+                c.REG_ILLSEQ   => return error.RegIllseq,   // "illegal byte sequence (bad multibyte character)"
+                else           => return error.RegUnknown,
+            }
+        }
+
+    };
 }
 
 fn solve(reader: anytype) !u128 {
@@ -17,37 +85,27 @@ fn solve(reader: anytype) !u128 {
     try reader.readAllArrayList(&input_al, std.math.maxInt(usize));
     try input_al.append(0);
     var input = input_al.items[0..input_al.items.len-1:0];
-    var errcode: c_int = 0;
-    var preg: c.regex_t = undefined;
-    var pmatch: [4]c.regmatch_t = undefined;
-    errcode = c.regcomp(&preg, "(don't\\(\\)|do\\(\\)|mul\\(([0-9]+),([0-9]+)\\))", c.REG_EXTENDED);
-    if (errcode > 0) {
-        var errbuf: [1024:0]u8 = undefined;
-        _ = c.regerror(errcode, &preg, &errbuf, errbuf.len);
-        dprint("regcomp error ({d}): {s}\n", .{errcode, errbuf});
-        return error.RegcompError;
-    }
+    var cregex = try Cregex(4).init("(don't\\(\\)|do\\(\\)|mul\\(([0-9]+),([0-9]+)\\))");
     var res: u128 = 0;
     var enable = true;
-    while (c.regexec(&preg, input, pmatch.len, &pmatch, 0) == 0) {
-        const k = input[@as(usize, @intCast(pmatch[0].rm_so)) + 2];
+    while (try cregex.match(input)) |matches| {
+        const k = matches[0].?.val[2];
         switch(k) {
             '(' => enable = true,  // do()
             'n' => enable = false, // don't()
             'l' => { // mul()
                 if (enable) {
-                    const l = try std.fmt.parseInt(u64, input[@as(usize, @intCast(pmatch[2].rm_so))..@as(usize, @intCast(pmatch[2].rm_eo))], 10);
-                    const r = try std.fmt.parseInt(u64, input[@as(usize, @intCast(pmatch[3].rm_so))..@as(usize, @intCast(pmatch[3].rm_eo))], 10);
+                    const l = try std.fmt.parseInt(u64, matches[2].?.val, 10);
+                    const r = try std.fmt.parseInt(u64, matches[3].?.val, 10);
                     res += l*r;
                 }
             },
             else => {
-                const match = input[@as(usize, @intCast(pmatch[0].rm_so))..@as(usize, @intCast(pmatch[0].rm_eo))];
-                dprint("Unknown char '{c}' in match: '{s}'\n", .{k, match});
+                dprint("Unknown char '{c}' in match: '{s}'\n", .{k, matches[0].?.val});
                 return error.UnknownChar;
             }
         }
-        input = input[@as(usize, @intCast(pmatch[0].rm_eo))..:0];
+        input = input[matches[0].?.pos+matches[0].?.val.len..:0];
     }
     return res;
 }
