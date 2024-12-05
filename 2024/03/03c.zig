@@ -15,7 +15,7 @@ fn solve(reader: anytype) !u128 {
     try reader.readAllArrayList(&input_al, std.math.maxInt(usize));
     try input_al.append(0);
     var input = input_al.items[0..input_al.items.len-1:0];
-    var cregex = try Cregex(4).init("(don't\\(\\)|do\\(\\)|mul\\(([0-9]+),([0-9]+)\\))");
+    var cregex = try Cregex.init(allocator, "(don't\\(\\)|do\\(\\)|mul\\(([0-9]+),([0-9]+)\\))");
     var res: u128 = 0;
     var enable = true;
     while (try cregex.match(input)) |matches| {
