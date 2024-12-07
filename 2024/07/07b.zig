@@ -37,15 +37,10 @@ fn advanceOps(ops: []Operator) bool {
     return false;
 }
 
-var concat_buf: [255]u8 = undefined;
 fn concatNums(a: u64, b: u64) !u64 {
-    var res = a;
-    var bee = b;
-    while (bee > 0) {
-        res *= 10;
-        bee /= 10;
-    }
-    return res + b;
+    var mul: u64 = 1;
+    while (b >= mul) { mul *= 10; }
+    return (a*mul)+b;
 }
 
 fn executeEquation(ops: []Operator, nums: []u64) !u64 {
