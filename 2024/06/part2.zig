@@ -163,7 +163,6 @@ fn test_solve(expected: u64, input_file_path: []const u8) !void {
     try std.testing.expectEqual(expected, try solve(file.reader()));
 }
 test "example" { try test_solve(6,    "./06/example1.txt"); }
-// commented out because runs for toooooo daaaaamn long
 //test "input"   { try test_solve(1951, "./06/input.txt"); }
 // too high: 2138, 2160
 // incorrect: 2048, 2049, 2050, 2108, 2015

@@ -84,6 +84,5 @@ fn test_solve(expected: u64, input_file_path: []const u8) !void {
     defer file.close();
     try std.testing.expectEqual(expected, try solve(file.reader()));
 }
-test "07b example.a.txt" { try test_solve(11387, "./07/example.a.txt"); }
-test "07b input.txt"     { try test_solve(150077710195188, "./07/input.txt"); }
-
+test "example" { try test_solve(11387,           "./07/example1.txt"); }
+test "input"   { try test_solve(150077710195188, "./07/input.txt"); }

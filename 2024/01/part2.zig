@@ -53,5 +53,5 @@ fn test_solve(expected: u64, input_file_path: []const u8) !void {
     defer file.close();
     try std.testing.expectEqual(expected, try solve(file.reader()));
 }
-test "01b example.b.txt" { try test_solve(31,       "./01/example.a.txt"); }
-test "01b input.txt"     { try test_solve(25358365, "./01/input.txt"); }
+test "example" { try test_solve(31,       "./01/example1.txt"); }
+test "input"   { try test_solve(25358365, "./01/input.txt"); }

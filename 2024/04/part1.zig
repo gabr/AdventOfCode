@@ -131,6 +131,6 @@ fn test_solve(expected: u64, input_file_path: []const u8) !void {
     defer file.close();
     try std.testing.expectEqual(expected, try solve(file.reader()));
 }
-test "04a example.b.txt" { try test_solve(18, "./04/example.a.txt"); }
-test "04a input.txt"     { try test_solve(2532, "./04/input.txt"); }
+test "example" { try test_solve(18,   "./04/example1.txt"); }
+test "input"   { try test_solve(2532, "./04/input.txt"); }
 

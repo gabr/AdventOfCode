@@ -12,7 +12,7 @@ const Order = struct {
     right: u8
 };
 
-fn isUpdateCorrec(update: []u8, orders: []Order) bool {
+fn isUpdateCorrec(update: []u8, orders: []Order) !bool {
     for (update[1..], 1..) |num, i| {
         for (orders) |order| {
             if (order.left == num) {
@@ -25,26 +25,6 @@ fn isUpdateCorrec(update: []u8, orders: []Order) bool {
         }
     }
     return true;
-}
-
-fn reorderUpdate(update: []u8, orders: []Order) void {
-    var i: usize = 1;
-    while (i<update.len) {
-        const num = update[i];
-        for (orders) |order| {
-            if (order.left == num) {
-                for (update[0..i], 0..) |prev_num,j| {
-                    if (prev_num == order.right) {
-                        update[j] = update[i];
-                        update[i] = prev_num;
-                        i = 1;
-                        continue;
-                    }
-                }
-            }
-        }
-        i+=1;
-    }
 }
 
 fn solve(reader: anytype) !u64 {
@@ -79,12 +59,11 @@ fn solve(reader: anytype) !u64 {
             try update_al.append(num);
         }
         const update = update_al.items;
-        if (!isUpdateCorrec(update, orders)) {
+        if (try isUpdateCorrec(update, orders)) {
             if (update.len % 2 == 0) {
                 dprint("Update has even number of items: '{s}'\n", .{line});
                 return error.updateEvenNumberOfItems;
             }
-            reorderUpdate(update, orders);
             sum += update[(update.len-1)/2];
         }
     }
@@ -96,5 +75,6 @@ fn test_solve(expected: u64, input_file_path: []const u8) !void {
     defer file.close();
     try std.testing.expectEqual(expected, try solve(file.reader()));
 }
-test "05b example.a.txt" { try test_solve(123,  "./05/example.a.txt"); }
-//test "05b input.txt"     { try test_solve(, "./05/input.txt"); }
+test "example" { try test_solve(143,  "./05/example1.txt"); }
+test "input"   { try test_solve(5208, "./05/input.txt"); }
+
