@@ -7,22 +7,105 @@ pub fn main() !void {
     try stdout.print("{d}\n", .{try solve(stdin)});
 }
 
+var rows: [][]u8 = undefined;
+var starting_pos: [2]usize = undefined;
+const Direction = enum { up, down, left, right, };
+const Visited = struct {
+    pos: [2]usize,
+    dir: Direction,
+};
+var visited_pos: std.ArrayList(Visited) = undefined;
+fn posAlreadyVisited(pos: [2]usize, dir: Direction) bool {
+    for (visited_pos.items) |visited| {
+        if (visited.dir == dir and
+            visited.pos[0] == pos[0] and
+            visited.pos[1] == pos[1]) {
+            return true;
+        }
+    }
+    return false;
+}
+
+fn nextPos(pos: [2]usize, dir: Direction) ?[2]usize {
+    switch (dir) {
+        .up    => {
+            if (pos[0] == 0) return null;
+            return .{pos[0]-1, pos[1]};
+        },
+        .down  => {
+            if (pos[0] == rows.len-1) return null;
+            return .{pos[0]+1, pos[1]};
+        },
+        .left  => {
+            if (pos[1] == 0) return null;
+            return .{pos[0], pos[1]-1};
+        },
+        .right => {
+            if (pos[1] == rows[0].len-1) return null;
+            return .{pos[0], pos[1]+1};
+        },
+    }
+}
+
+fn move(pos: *[2]usize, dir: *Direction) !bool {
+    const start_dir = dir.*;
+    while (nextPos(pos.*, dir.*)) |np| {
+        if (rows[np[0]][np[1]]!='#') {
+            pos.* = np;
+            return true;
+        }
+        dir.* = switch (dir.*) {
+            .up    => .right,
+            .right => .down,
+            .down  => .left,
+            .left  => .up,
+        };
+        if (dir.* == start_dir) return error.ImpossibleToMove;
+    }
+    return false;
+}
+
+fn isPosStartingPos(pos: [2]usize) bool {
+    return pos[0] == starting_pos[0] and
+           pos[1] == starting_pos[1];
+}
+
+// returns true if end, false if loop
+fn simulateTillTheEndOrLoop(start_pos: [2]usize, start_dir: Direction) !bool {
+    var pos = start_pos;
+    var dir = start_dir;
+    visited_pos.items.len = 0;
+    while (true) {
+        if (posAlreadyVisited(pos, dir)) return false;
+        try visited_pos.append(.{ .pos = pos, .dir = dir });
+        if (!try move(&pos, &dir)) return true; // went outside of the board - the end
+    }
+    unreachable;
+}
+
+fn hasPos(pos: [2]usize, positions: std.ArrayList([2]usize)) bool {
+    for (positions.items) |p| {
+        if (p[0] == pos[0] and
+            p[1] == pos[1]) return true;
+    }
+    return false;
+}
+
 fn solve(reader: anytype) !u64 {
     var arena = std.heap.ArenaAllocator.init(std.heap.page_allocator);
     const allocator = arena.allocator();
     var input_al = try std.ArrayList(u8).initCapacity(allocator, 1024*16);
     try reader.readAllArrayList(&input_al, std.math.maxInt(usize));
     var line_it = std.mem.splitAny(u8, input_al.items, "\n");
-    var lines_al = try std.ArrayList([]const u8).initCapacity(allocator, 1014);
+    var lines_al = try std.ArrayList([]u8).initCapacity(allocator, 1014);
     while(line_it.next()) |line| {
         if (line.len == 0) continue;
-        try lines_al.append(line);
+        try lines_al.append(@constCast(line));
     }
-    const rows = lines_al.items;
+    rows = lines_al.items;
     // find starting position - direction is always up
-    const Direction = enum { up, down, left, right, };
-    var direction = Direction.up;
-    var pos: [2]isize = undefined;
+    //var dir = Direction.up;
+    var pos: [2]usize = undefined;
     for (rows,0..) |row,ri| {
         for (row,0..) |c,ci| {
             if (c == '^') {
@@ -32,70 +115,45 @@ fn solve(reader: anytype) !u64 {
             }
         }
     }
-    const starting_pos = pos;
-    var obstructions: usize = 0;
-    var visited_pos = try allocator.alloc([][4]bool, rows.len);
-    for (0..rows.len) |i| {
-        visited_pos[i] = try allocator.alloc([4]bool, rows[0].len);
-        for (0..rows[0].len) |j| {
-            visited_pos[i][j] = .{ false, false, false, false };
-        }
-    }
-    visited_pos[@intCast(pos[0])][@intCast(pos[1])][@intFromEnum(Direction.up)] = true;
-    while (true) {
-        const np = switch (direction) {
-            .up    => .{pos[0]-1, pos[1]},
-            .down  => .{pos[0]+1, pos[1]},
-            .left  => .{pos[0],   pos[1]-1},
-            .right => .{pos[0],   pos[1]+1},
-        };
-        if (np[0] == -1 or np[0] == rows.len or
-            np[1] == -1 or np[1] == rows[0].len) break;
-        if (rows[@intCast(np[0])][@intCast(np[1])]=='#') {
-            direction = switch (direction) {
-                .up    => .right,
-                .down  => .left,
-                .left  => .up,
-                .right => .down,
-            };
-            continue;
-        }
-        var any_visited = false;
-        for (visited_pos[@intCast(np[0])][@intCast(np[1])]) |vis| {
-            if (vis == true) {
-                any_visited = true;
-                break;
-            }
-        }
-        if (any_visited) {
-            for (visited_pos[@intCast(np[0])][@intCast(np[1])], 0..) |vis, i| {
-                if (!vis) continue;
-                const visited_direction: Direction = @enumFromInt(i);
-                var dir_to_block = Direction.up;
-                switch (direction) {
-                    .up    => dir_to_block = .right,
-                    .down  => dir_to_block = .left,
-                    .left  => dir_to_block = .up,
-                    .right => dir_to_block = .down,
-                }
-                if (visited_direction == dir_to_block) {
-                    const block_pos = switch (direction) {
-                        .up    => .{np[0]-1, np[1]},
-                        .down  => .{np[0]+1, np[1]},
-                        .left  => .{np[0],   np[1]-1},
-                        .right => .{np[0],   np[1]+1},
-                    };
-                    if (block_pos[0] != starting_pos[0] or
-                        block_pos[1] != starting_pos[1]) {
-                        obstructions += 1;
-                    }
+    starting_pos = pos;
+    visited_pos = try std.ArrayList(Visited).initCapacity(allocator, 1024*16);
+    var obstructions = try std.ArrayList([2]usize).initCapacity(allocator, 1024);
+    for (rows,0..) |row,ri| {
+        for (row,0..) |_,ci| {
+            pos = .{ri,ci};
+            if (isPosStartingPos(pos)) continue;
+            if (rows[pos[0]][pos[1]] == '#') continue;
+            rows[pos[0]][pos[1]] = '#';
+            if (!try simulateTillTheEndOrLoop(starting_pos, Direction.up)) {
+                if (!hasPos(pos, obstructions)) {
+                    try obstructions.append(pos);
                 }
             }
+            rows[pos[0]][pos[1]] = '.';
         }
-        visited_pos[@intCast(np[0])][@intCast(np[1])][@intFromEnum(direction)] = true;
-        pos = np;
     }
-    return obstructions;
+    // TODO(arek): This is not correct but why? produces to big results
+    //while (true) {
+    //    const start_pos = pos;
+    //    const start_dir = dir;
+    //    if (!try move(&pos, &dir)) break; // out of the board
+    //    if (!isPosStartingPos(pos)) {
+    //        if (rows[pos[0]][pos[1]] != '#' and !hasPos(pos, obstructions)) {
+    //            rows[pos[0]][pos[1]] = '#';
+    //            if (!try simulateTillTheEndOrLoop(start_pos, start_dir)) {
+    //                if (!hasPos(pos, obstructions)) {
+    //                    try obstructions.append(pos);
+    //                }
+    //            }
+    //            rows[pos[0]][pos[1]] = '.';
+    //        }
+    //    }
+    //}
+    //dprint("obstructions:\n", .{});
+    //for (obstructions.items, 0..) |obs,i| {
+    //    dprint("{d}: {any}\n", .{i,obs});
+    //}
+    return obstructions.items.len;
 }
 
 fn test_solve(expected: u64, input_file_path: []const u8) !void {
@@ -104,5 +162,7 @@ fn test_solve(expected: u64, input_file_path: []const u8) !void {
     try std.testing.expectEqual(expected, try solve(file.reader()));
 }
 test "06b example.a.txt" { try test_solve(6,  "./06/example.a.txt"); }
-//test "06b input.txt"     { try test_solve(0, "./06/input.txt"); }
+test "06b input.txt"     { try test_solve(1951, "./06/input.txt"); }
+// too high: 2138, 2160
+// incorrect: 2048, 2049, 2050, 2108, 2015
 
