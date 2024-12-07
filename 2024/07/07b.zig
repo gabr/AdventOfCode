@@ -23,36 +23,34 @@ fn isEquationPossible(test_value: u64, nums: []u64) !bool {
 
 fn advanceOps(ops: []Operator) bool {
     var opi: usize = 0;
-    while (true) {
+    while (opi < ops.len) {
         var op: usize = @intFromEnum(ops[opi]);
         op += 1;
-        if (op >= ops_count) {
-            op = 0;
-            ops[opi] = @enumFromInt(op);
-            opi+=1;
-            if (opi >= ops.len) return false;
-        } else {
+        if (op < ops_count) {
             ops[opi] = @enumFromInt(op);
             return true;
         }
+        op = 0;
+        ops[opi] = @enumFromInt(op);
+        opi+=1;
     }
-    unreachable;
+    return false;
 }
 
 var concat_buf: [255]u8 = undefined;
 fn concatNums(a: u64, b: u64) !u64 {
-    const joined = try std.fmt.bufPrint(&concat_buf, "{d}{d}", .{a,b});
-    return try std.fmt.parseInt(u64, joined, 10);
+    var res = a;
+    var bee = b;
+    while (bee > 0) {
+        res *= 10;
+        bee /= 10;
+    }
+    return res + b;
 }
 
 fn executeEquation(ops: []Operator, nums: []u64) !u64 {
-    var res: u64 = undefined;
-    switch (ops[0]) {
-        .plus     => res = nums[0]+nums[1],
-        .multiply => res = nums[0]*nums[1],
-        .concat   => res = try concatNums(nums[0],nums[1]),
-    }
-    for (1..ops.len) |i| {
+    var res: u64 = nums[0];
+    for (0..ops.len) |i| {
         switch (ops[i]) {
             .plus     => res = res+nums[i+1],
             .multiply => res = res*nums[i+1],

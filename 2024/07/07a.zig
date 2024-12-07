@@ -23,29 +23,23 @@ fn isEquationPossible(test_value: u64, nums: []u64) bool {
 
 fn advanceOps(ops: []Operator) bool {
     var opi: usize = 0;
-    while (true) {
+    while (opi < ops.len) {
         var op: usize = @intFromEnum(ops[opi]);
         op += 1;
-        if (op >= ops_count) {
-            op = 0;
-            ops[opi] = @enumFromInt(op);
-            opi+=1;
-            if (opi >= ops.len) return false;
-        } else {
+        if (op < ops_count) {
             ops[opi] = @enumFromInt(op);
             return true;
         }
+        op = 0;
+        ops[opi] = @enumFromInt(op);
+        opi+=1;
     }
-    unreachable;
+    return false;
 }
 
 fn executeEquation(ops: []Operator, nums: []u64) u64 {
-    var res: u64 = undefined;
-    switch (ops[0]) {
-        .plus     => res = nums[0]+nums[1],
-        .multiply => res = nums[0]*nums[1],
-    }
-    for (1..ops.len) |i| {
+    var res: u64 = nums[0];
+    for (0..ops.len) |i| {
         switch (ops[i]) {
             .plus     => res = res+nums[i+1],
             .multiply => res = res*nums[i+1],
