@@ -7,88 +7,103 @@ pub fn main() !void {
     try stdout.print("{d}\n", .{try solve(stdin)});
 }
 
-var rows: [][]u8 = undefined;
-var starting_pos: [2]usize = undefined;
-const Direction = enum { up, down, left, right, };
-const Visited = struct {
-    pos: [2]usize,
-    dir: Direction,
-};
-var visited_pos: std.ArrayList(Visited) = undefined;
-fn posAlreadyVisited(pos: [2]usize, dir: Direction) bool {
-    for (visited_pos.items) |visited| {
-        if (visited.dir == dir and
-            visited.pos[0] == pos[0] and
-            visited.pos[1] == pos[1]) {
-            return true;
-        }
-    }
-    return false;
-}
-
-fn nextPos(pos: [2]usize, dir: Direction) ?[2]usize {
-    switch (dir) {
-        .up    => {
-            if (pos[0] == 0) return null;
-            return .{pos[0]-1, pos[1]};
-        },
-        .down  => {
-            if (pos[0] == rows.len-1) return null;
-            return .{pos[0]+1, pos[1]};
-        },
-        .left  => {
-            if (pos[1] == 0) return null;
-            return .{pos[0], pos[1]-1};
-        },
-        .right => {
-            if (pos[1] == rows[0].len-1) return null;
-            return .{pos[0], pos[1]+1};
-        },
-    }
-}
-
-fn move(pos: *[2]usize, dir: *Direction) !bool {
-    const start_dir = dir.*;
-    while (nextPos(pos.*, dir.*)) |np| {
-        if (rows[np[0]][np[1]]!='#') {
-            pos.* = np;
-            return true;
-        }
-        dir.* = switch (dir.*) {
-            .up    => .right,
-            .right => .down,
-            .down  => .left,
-            .left  => .up,
-        };
-        if (dir.* == start_dir) return error.ImpossibleToMove;
-    }
-    return false;
-}
-
-fn isPosStartingPos(pos: [2]usize) bool {
-    return pos[0] == starting_pos[0] and
-           pos[1] == starting_pos[1];
-}
-
-// returns true if end, false if loop
-fn simulateTillTheEndOrLoop(start_pos: [2]usize, start_dir: Direction) !bool {
-    var pos = start_pos;
-    var dir = start_dir;
-    visited_pos.items.len = 0;
+const directions = "^>v<";
+const empty_field = '.';
+const obstackle = '#';
+const added_obstackle = 'O';
+fn loops(map: [][]u8, start_ri: usize, start_ci: usize) !bool {
+    // staring direction is always up
+    var di: usize = 0;
+    var ri: isize = @intCast(start_ri);
+    var ci: isize = @intCast(start_ci);
+    var loop = false;
     while (true) {
-        if (posAlreadyVisited(pos, dir)) return false;
-        try visited_pos.append(.{ .pos = pos, .dir = dir });
-        if (!try move(&pos, &dir)) return true; // went outside of the board - the end
+        const dir = directions[di];
+        const pri = ri;
+        const pci = ci;
+        switch (dir) {
+            '^'  => ri -= 1,
+            '>'  => ci += 1,
+            'v'  => ri += 1,
+            '<'  => ci -= 1,
+            else => return error.UnknownDirection,
+        }
+        if (ri < 0 or ri >= map.len or
+            ci < 0 or ci >= map[0].len) break; // out of map - no loop
+        // obstackle - go back, turn and try again
+        const c = map[@intCast(ri)][@intCast(ci)];
+        if (c == obstackle or c == added_obstackle) {
+            ri = pri;
+            ci = pci;
+            di = (di+1)%directions.len;
+            continue;
+        }
+        if (c == dir) {
+            loop = true;
+            break;
+        }
+        // mark current position on the map with current direction
+        if (c == empty_field) {
+            map[@intCast(ri)][@intCast(ci)] = dir;
+        }
     }
-    unreachable;
+    // reset the map
+    for (map) |row| {
+        for (row) |*c| {
+            // if was marked as move clear it
+            if (std.mem.indexOfScalar(u8, directions, c.*)) |_| {
+                c.* = empty_field;
+            }
+        }
+    }
+    return loop;
 }
 
-fn hasPos(pos: [2]usize, positions: std.ArrayList([2]usize)) bool {
-    for (positions.items) |p| {
-        if (p[0] == pos[0] and
-            p[1] == pos[1]) return true;
+var visited_pos_buf: [1024*16][2]usize = undefined;
+fn walk(map: [][]u8, start_ri: usize, start_ci: usize) ![][2]usize {
+    var vi: usize = 0;
+    var di: usize = 0;
+    var ri: isize = @intCast(start_ri);
+    var ci: isize = @intCast(start_ci);
+    const visited = 'X';
+    map[@intCast(ri)][@intCast(ci)] = visited;
+    // do not save the starting position
+    //visited_pos_buf[vi] = .{ @intCast(ri), @intCast(ci) }; vi += 1;
+    while (true) {
+        const dir = directions[di];
+        const pri = ri;
+        const pci = ci;
+        switch (dir) {
+            '^'  => ri -= 1,
+            '>'  => ci += 1,
+            'v'  => ri += 1,
+            '<'  => ci -= 1,
+            else => return error.UnknownDirection,
+        }
+        if (ri < 0 or ri >= map.len or
+            ci < 0 or ci >= map[0].len) break; // out of map
+        // obstackle - go back, turn and try again
+        if (map[@intCast(ri)][@intCast(ci)] == obstackle) {
+            ri = pri;
+            ci = pci;
+            di = (di+1)%directions.len;
+            continue;
+        }
+        if (map[@intCast(ri)][@intCast(ci)] != visited) {
+            visited_pos_buf[vi] = .{ @intCast(ri), @intCast(ci) }; vi += 1;
+            map[@intCast(ri)][@intCast(ci)] = visited;
+        }
     }
-    return false;
+    // reset the map
+    for (map) |row| {
+        for (row) |*c| {
+            // if was marked as move clear it
+            if (c.* == visited) {
+                c.* = empty_field;
+            }
+        }
+    }
+    return visited_pos_buf[0..vi];
 }
 
 fn solve(reader: anytype) !u64 {
@@ -102,59 +117,30 @@ fn solve(reader: anytype) !u64 {
         if (line.len == 0) continue;
         try lines_al.append(@constCast(line));
     }
-    rows = lines_al.items;
+    const map = lines_al.items;
     // find starting position - direction is always up
-    //var dir = Direction.up;
-    var pos: [2]usize = undefined;
-    for (rows,0..) |row,ri| {
+    var start_ri: usize = undefined;
+    var start_ci: usize = undefined;
+    start_pos: for (map,0..) |row,ri| {
         for (row,0..) |c,ci| {
             if (c == '^') {
-                pos[0] = @intCast(ri);
-                pos[1] = @intCast(ci);
-                break;
+                start_ri = @intCast(ri);
+                start_ci = @intCast(ci);
+                break :start_pos;
             }
         }
     }
-    starting_pos = pos;
-    visited_pos = try std.ArrayList(Visited).initCapacity(allocator, 1024*16);
-    var obstructions = try std.ArrayList([2]usize).initCapacity(allocator, 1024);
-    for (rows,0..) |row,ri| {
-        for (row,0..) |_,ci| {
-            pos = .{ri,ci};
-            if (isPosStartingPos(pos)) continue;
-            if (rows[pos[0]][pos[1]] == '#') continue;
-            rows[pos[0]][pos[1]] = '#';
-            if (!try simulateTillTheEndOrLoop(starting_pos, Direction.up)) {
-                if (!hasPos(pos, obstructions)) {
-                    try obstructions.append(pos);
-                }
-            }
-            rows[pos[0]][pos[1]] = '.';
-        }
+    const visited_pos = try walk(map, start_ri, start_ci);
+    var count: usize = 0;
+    for (visited_pos) |pos| {
+        // add artificial obstackle and test
+        const c = map[pos[0]][pos[1]];
+        map[pos[0]][pos[1]] = added_obstackle;
+        if (try loops(map, start_ri, start_ci)) count += 1;
+        // restore original value
+        map[pos[0]][pos[1]] = c;
     }
-    // TODO(arek): This is not correct but why? produces to big results
-    // because you can place an obstackle on already walked path
-    //while (true) {
-    //    const start_pos = pos;
-    //    const start_dir = dir;
-    //    if (!try move(&pos, &dir)) break; // out of the board
-    //    if (!isPosStartingPos(pos)) {
-    //        if (rows[pos[0]][pos[1]] != '#' and !hasPos(pos, obstructions)) {
-    //            rows[pos[0]][pos[1]] = '#';
-    //            if (!try simulateTillTheEndOrLoop(start_pos, start_dir)) {
-    //                if (!hasPos(pos, obstructions)) {
-    //                    try obstructions.append(pos);
-    //                }
-    //            }
-    //            rows[pos[0]][pos[1]] = '.';
-    //        }
-    //    }
-    //}
-    //dprint("obstructions:\n", .{});
-    //for (obstructions.items, 0..) |obs,i| {
-    //    dprint("{d}: {any}\n", .{i,obs});
-    //}
-    return obstructions.items.len;
+    return count;
 }
 
 fn test_solve(expected: u64, input_file_path: []const u8) !void {
@@ -163,7 +149,5 @@ fn test_solve(expected: u64, input_file_path: []const u8) !void {
     try std.testing.expectEqual(expected, try solve(file.reader()));
 }
 test "example" { try test_solve(6,    "./06/example1.txt"); }
-//test "input"   { try test_solve(1951, "./06/input.txt"); }
-// too high: 2138, 2160
-// incorrect: 2048, 2049, 2050, 2108, 2015
+test "input"   { try test_solve(1951, "./06/input.txt"); }
 

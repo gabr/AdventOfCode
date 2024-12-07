@@ -25,12 +25,12 @@ fn solve(reader: anytype) !u64 {
     var dir = Direction.up;
     var ri: isize = undefined;
     var ci: isize = undefined;
-    direction: for (map,0..) |row,i| {
+    start_pos: for (map,0..) |row,i| {
         for (row,0..) |c,j| {
             if (c == '^') {
                 ri = @intCast(i);
                 ci = @intCast(j);
-                break :direction;
+                break :start_pos;
             }
         }
     }
