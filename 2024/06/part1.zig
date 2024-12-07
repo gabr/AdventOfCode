@@ -13,59 +13,57 @@ fn solve(reader: anytype) !u64 {
     var input_al = try std.ArrayList(u8).initCapacity(allocator, 1024*16);
     try reader.readAllArrayList(&input_al, std.math.maxInt(usize));
     var line_it = std.mem.splitAny(u8, input_al.items, "\n");
-    var lines_al = try std.ArrayList([]const u8).initCapacity(allocator, 1014);
+    var lines_al = try std.ArrayList([]u8).initCapacity(allocator, 1014);
     while(line_it.next()) |line| {
         if (line.len == 0) continue;
-        try lines_al.append(line);
+        try lines_al.append(@constCast(line));
     }
-    const rows = lines_al.items;
+    const map = lines_al.items;
     // find starting position - direction is always up
-    const Direction = enum { up, down, left, right, };
-    var direction = Direction.up;
-    var pos: [2]isize = undefined;
-    for (rows,0..) |row,ri| {
-        for (row,0..) |c,ci| {
+    const Direction = enum { up, right, down, left, };
+    const dirs_count = @typeInfo(Direction).Enum.fields.len;
+    var dir = Direction.up;
+    var ri: isize = undefined;
+    var ci: isize = undefined;
+    direction: for (map,0..) |row,i| {
+        for (row,0..) |c,j| {
             if (c == '^') {
-                pos[0] = @intCast(ri);
-                pos[1] = @intCast(ci);
-                break;
+                ri = @intCast(i);
+                ci = @intCast(j);
+                break :direction;
             }
         }
     }
-    var moves: usize = 1;
-    var visited_pos = try allocator.alloc([]bool, rows.len);
-    for (0..rows.len) |i| {
-        visited_pos[i] = try allocator.alloc(bool, rows[0].len);
-        for (0..rows[0].len) |j| {
-            visited_pos[i][j] = false;
-        }
-    }
-    visited_pos[@intCast(pos[0])][@intCast(pos[1])] = true;
+    // move around and mark visited places
+    const visited = 'X';
+    map[@intCast(ri)][@intCast(ci)] = visited;
     while (true) {
-        const np = switch (direction) {
-            .up    => .{pos[0]-1, pos[1]},
-            .down  => .{pos[0]+1, pos[1]},
-            .left  => .{pos[0],   pos[1]-1},
-            .right => .{pos[0],   pos[1]+1},
-        };
-        if (np[0] == -1 or np[0] == rows.len or
-            np[1] == -1 or np[1] == rows[0].len) break;
-        if (rows[@intCast(np[0])][@intCast(np[1])]=='#') {
-            direction = switch (direction) {
-                .up    => .right,
-                .down  => .left,
-                .left  => .up,
-                .right => .down,
-            };
+        const pri = ri;
+        const pci = ci;
+        switch (dir) {
+            .up    => ri -= 1,
+            .right => ci += 1,
+            .down  => ri += 1,
+            .left  => ci -= 1,
+        }
+        if (ri < 0 or ri >= map.len or
+            ci < 0 or ci >= map[0].len) break; // out of map
+        // obstackle - go back, turn and try again
+        if (map[@intCast(ri)][@intCast(ci)] == '#') {
+            ri = pri;
+            ci = pci;
+            dir = @enumFromInt((@as(u8, @intFromEnum(dir))+1)%dirs_count);
             continue;
         }
-        if (!visited_pos[@intCast(np[0])][@intCast(np[1])]) {
-            moves+=1;
-            visited_pos[@intCast(np[0])][@intCast(np[1])] = true;
-        }
-        pos = np;
+        map[@intCast(ri)][@intCast(ci)] = visited;
     }
-    return moves;
+    var visited_count: usize = 0;
+    for (map) |row| {
+        for (row) |c| {
+            if (c == visited) visited_count += 1;
+        }
+    }
+    return visited_count;
 }
 
 fn test_solve(expected: u64, input_file_path: []const u8) !void {
