@@ -38,12 +38,12 @@ fn solve(reader: anytype) !u64 {
             return std.math.order(key, mid_item);
         }
     }.compareFn;
-    for (left_al.items) |l| {
-        const mi = std.sort.binarySearch(u32, l, right_al.items, {}, compareFn) orelse continue;
-        var li = mi; while (li > 0 and right_al.items[li-1] == l) { li-=1; }
-        var ri = mi; while (ri+1 < right_al.items.len and right_al.items[ri+1] == l) { ri+=1; }
+    for (left_al.items) |left| {
+        const mi = std.sort.binarySearch(u32, left, right_al.items, {}, compareFn) orelse continue;
+        var li = mi; while (li > 0 and right_al.items[li-1] == left) { li-=1; }
+        var ri = mi; while (ri+1 < right_al.items.len and right_al.items[ri+1] == left) { ri+=1; }
         const count = ri-li+1;
-        similarity += l*count;
+        similarity += left*count;
     }
     return similarity;
 }
