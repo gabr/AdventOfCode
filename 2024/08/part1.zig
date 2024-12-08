@@ -15,14 +15,9 @@ fn markAntinodes(map: [][] u8, marks: [][] u8, antena: u8) void {
     for (0..map[0].len) |ci1| {
         const a1 = map[ri1][ci1];
         if (a1 != antena) continue;
-        for (ci1+1..map[0].len) |ci2| {
-            const ri2 = ri1;
-            const a2 = map[ri2][ci2];
-            if (a2 != antena) continue;
-            markForAntenas(map, marks, ri1, ci1, ri2, ci2);
-        }
-        for (ri1+1..map.len) |ri2| {
+        for (ri1..map.len) |ri2| {
         for (0..map[0].len) |ci2| {
+            if (ri2 == ri1 and ci2 == ci1) continue;
             const a2 = map[ri2][ci2];
             if (a2 != antena) continue;
             markForAntenas(map, marks, ri1, ci1, ri2, ci2);
