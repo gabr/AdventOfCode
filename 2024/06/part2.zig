@@ -11,9 +11,13 @@ const directions = "^>v<";
 const empty_field = '.';
 const obstackle = '#';
 const added_obstackle = 'O';
+
+
+var marked_pos_buf: [1024*16][2]usize = undefined;
 fn loops(map: [][]u8, start_ri: usize, start_ci: usize) !bool {
     // staring direction is always up
     var di: usize = 0;
+    var mi: usize = 0;
     var ri: isize = @intCast(start_ri);
     var ci: isize = @intCast(start_ci);
     var loop = false;
@@ -45,16 +49,12 @@ fn loops(map: [][]u8, start_ri: usize, start_ci: usize) !bool {
         // mark current position on the map with current direction
         if (c == empty_field) {
             map[@intCast(ri)][@intCast(ci)] = dir;
+            marked_pos_buf[mi] = .{ @intCast(ri), @intCast(ci) }; mi += 1;
         }
     }
     // reset the map
-    for (map) |row| {
-        for (row) |*c| {
-            // if was marked as move clear it
-            if (std.mem.indexOfScalar(u8, directions, c.*)) |_| {
-                c.* = empty_field;
-            }
-        }
+    for (marked_pos_buf[0..mi]) |pos| {
+        map[pos[0]][pos[1]] = empty_field;
     }
     return loop;
 }
