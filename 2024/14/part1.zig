@@ -10,6 +10,14 @@ pub fn main() !void {
     try stdout.print("{d}\n", .{try solve(101, 103, stdin)});
 }
 
+fn move(max: usize, steps: usize, pos: usize, vel: i128) usize {
+    const s: i128 = @intCast(steps);
+    const p: i128 = @intCast(pos);
+    const m: i128 = @intCast(max);
+    const np = @rem(@rem(p+s*vel, m) + m, m);
+    return @intCast(np);
+}
+
 fn solve(width: usize, height: usize, reader: anytype) !u128 {
     var arena = std.heap.ArenaAllocator.init(std.heap.page_allocator);
     const allocator = arena.allocator();
@@ -24,40 +32,18 @@ fn solve(width: usize, height: usize, reader: anytype) !u128 {
         var space_it = std.mem.splitScalar(u8, line, ' ');
         var pos_it = std.mem.splitScalar(u8, space_it.next().?["p=".len..], ',');
         var vel_it = std.mem.splitScalar(u8, space_it.next().?["v=".len..], ',');
-        const p0 = try std.fmt.parseInt(i128, pos_it.next().?, 10);
-        const p1 = try std.fmt.parseInt(i128, pos_it.next().?, 10);
+        const p0 = try std.fmt.parseInt(usize, pos_it.next().?, 10);
+        const p1 = try std.fmt.parseInt(usize, pos_it.next().?, 10);
         const v0 = try std.fmt.parseInt(i128, vel_it.next().?, 10);
         const v1 = try std.fmt.parseInt(i128, vel_it.next().?, 10);
-        const s0 = p0+(seconds*v0);
-        const s1 = p1+(seconds*v1);
-        const m0: usize = @intCast(if (s0 < 0) -s0 else s0);
-        const m1: usize = @intCast(if (s1 < 0) -s1 else s1);
-        var dp0 = m0 % width;
-        var dp1 = m1 % height;
-        if (s0 < 0 and dp0 != 0) { dp0 = width  - dp0; }
-        if (s1 < 0 and dp1 != 0) { dp1 = height - dp1; }
-        const d0: usize = @intCast(dp0);
-        const d1: usize = @intCast(dp1);
-        var quadranti_op: ?usize = null;
-             if (d0 < (width-1)/2 and d1 < (height-1)/2) { quadranti_op = 0; }
-        else if (d0 > (width-1)/2 and d1 < (height-1)/2) { quadranti_op = 1; }
-        else if (d0 < (width-1)/2 and d1 > (height-1)/2) { quadranti_op = 2; }
-        else if (d0 > (width-1)/2 and d1 > (height-1)/2) { quadranti_op = 3; }
-        dprint("p={d},{d} v={d},{d} -> {d}, {d} " ++
-            "(s: {d}, {d}, m: {d}, {d}, dp: {d}, {d}) [{any}]\n", .{
-            p0, p1,
-            v0, v1,
-            d0, d1,
-            s0, s1,
-            m0, m1,
-            dp0, dp1,
-            quadranti_op});
-        if (quadranti_op) |qi| {
-            quadrants[qi]+= 1;
-        }
+        const d0 = move(width,  seconds, p0, v0);
+        const d1 = move(height, seconds, p1, v1);
+        if (d0 == (width-1)/2 or d1 == (height-1)/2) continue;
+        const qi = d0/(((width+1)/2))+((d1/((height+1)/2))*2);
+        quadrants[qi]+= 1;
     }
     var total: u128 = 1;
-    dprint("quadrants: {any}\n:=", .{quadrants});
+    dprint("quadrants: {any}\n", .{quadrants});
     for (quadrants) |q| { total *= q; }
     return total;
 }

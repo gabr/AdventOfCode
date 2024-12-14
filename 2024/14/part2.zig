@@ -16,21 +16,21 @@ const Drone = struct {
     v0: i128,
     v1: i128,
 
-    pub fn move(self: *Drone, width: usize, height: usize) void {
-        const sp0: i128 = @intCast(self.p0);
-        const sp1: i128 = @intCast(self.p1);
-        const s0 = sp0+self.v0;
-        const s1 = sp1+self.v1;
-        const m0: usize = @intCast(if (s0 < 0) -s0 else s0);
-        const m1: usize = @intCast(if (s1 < 0) -s1 else s1);
-        var dp0 = m0 % width;
-        var dp1 = m1 % height;
-        if (s0 < 0 and dp0 != 0) { dp0 = width  - dp0; }
-        if (s1 < 0 and dp1 != 0) { dp1 = height - dp1; }
-        const d0: usize = @intCast(dp0);
-        const d1: usize = @intCast(dp1);
-        self.p0 = d0;
-        self.p1 = d1;
+    pub fn step(self: *Drone, width: usize, height: usize) void {
+        self.stepBy(width, height, 1);
+    }
+
+    pub fn stepBy(self: *Drone, width: usize, height: usize, steps: usize) void {
+        self.p0 = moveBy(width,  steps, self.p0, self.v0);
+        self.p1 = moveBy(height, steps, self.p1, self.v1);
+    }
+
+    fn moveBy(max: usize, steps: usize, pos: usize, vel: i128) usize {
+        const s: i128 = @intCast(steps);
+        const p: i128 = @intCast(pos);
+        const m: i128 = @intCast(max);
+        const np = @rem(@rem(p+s*vel, m) + m, m);
+        return @intCast(np);
     }
 };
 
@@ -47,36 +47,24 @@ fn solve(width: usize, height: usize, reader: anytype) !u128 {
         var space_it = std.mem.splitScalar(u8, line, ' ');
         var pos_it = std.mem.splitScalar(u8, space_it.next().?["p=".len..], ',');
         var vel_it = std.mem.splitScalar(u8, space_it.next().?["v=".len..], ',');
-        const p0 = try std.fmt.parseInt(usize, pos_it.next().?, 10);
-        const p1 = try std.fmt.parseInt(usize, pos_it.next().?, 10);
-        const v0 = try std.fmt.parseInt(i128, vel_it.next().?, 10);
-        const v1 = try std.fmt.parseInt(i128, vel_it.next().?, 10);
         try drones_al.append(.{
-            .p0 = p0,
-            .p1 = p1,
-            .v0 = v0,
-            .v1 = v1,
+            .p0 = try std.fmt.parseInt(usize, pos_it.next().?, 10),
+            .p1 = try std.fmt.parseInt(usize, pos_it.next().?, 10),
+            .v0 = try std.fmt.parseInt(i128,  vel_it.next().?, 10),
+            .v1 = try std.fmt.parseInt(i128,  vel_it.next().?, 10),
         });
+    }
+    const drones = drones_al.items;
+    for (drones) |*d| {
+        d.stepBy(width, height, 8050);
     }
     var map = try allocator.alloc([]u8, height);
     for (0..height) |h| {
         map[h] = try allocator.alloc(u8, width);
+        for (map[h]) |*pos| { pos.*='.'; }
     }
-    for (0..height) |h| {
-        for (0..width) |w| {
-            map[h][w] = '.';
-        }
-    }
-    const drones = drones_al.items;
-    for (0..10000) |s| {
-        dprint("{d}:\n", .{s});
-        for (drones)    |d| { map[d.p1][d.p0] = '@'; }
-        for (0..height) |h| { dprint("{s}\n", .{map[h]}); }
-        for (drones)    |d| { map[d.p1][d.p0] = '.'; }
-        for (drones) |*d| {
-            d.move(width, height);
-        }
-    }
+    for (drones)    |d| { map[d.p1][d.p0] = '#'; }
+    for (0..height) |h| { dprint("{s}\n", .{map[h]}); }
     return 0;
 }
 
