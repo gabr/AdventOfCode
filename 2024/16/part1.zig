@@ -12,7 +12,8 @@ pub fn main() !void {
     try stdout.print("{d}\n", .{try solve(stdin)});
 }
 
-fn alloc() Allocator {
+// singleton global general purpose allocator
+fn gpa() Allocator {
     const GPA = std.heap.GeneralPurposeAllocator(.{});
     const S = struct { var gpa: ?GPA = null; };
     if (S.gpa == null) { S.gpa = GPA{}; }
@@ -20,19 +21,41 @@ fn alloc() Allocator {
 }
 
 fn readMap(input: []const u8) ![][]u8 {
+    var lines_count: usize = 0;
+    for (input) |char| { if (char == '\n') { lines_count += 1; } }
     var it = mem.tokenizeAny(u8, input, "\n\r");
-    var al = try std.ArrayList([]u8).initCapacity(alloc(), 1024*16);
+    var al = try std.ArrayList([]u8).initCapacity(gpa(), lines_count+1);
     while (it.next()) |line| { al.appendAssumeCapacity(@constCast(line)); }
     return al.items;
 }
 
-fn find(obj: u8, map: [][]u8) [2]usize {
+fn allocMap(comptime T: type, rows: usize, cols: usize) ![][]T {
+    const map = try gpa().alloc([]T, rows);
+    for (0..rows) |ri| {
+        map[ri] = try gpa().alloc(T, cols);
+    }
+    return map;
+}
+
+fn resetMap(comptime T: type, map:[][]T, val: T) void {
+    for (0..map.len) |ri| {
+        for (0..map[0].len) |ci| {
+            map[ri][ci] = val;
+        }
+    }
+}
+
+fn findObj(obj: u8, map: [][]u8) [2]usize {
     for (0..map.len) |ri| {
         for (0..map[0].len) |ci| {
             if (map[ri][ci]==obj) return .{ri,ci};
         }
     }
     unreachable;
+}
+
+fn getObj(map: [][]u8, pos: [2]usize) u8 {
+    return map[pos[0]][pos[1]];
 }
 
 const Dir = enum { E, S, W, N };
@@ -47,23 +70,7 @@ const State = struct {
     pos: [2]usize,
     dir: Dir,
     score: usize,
-
-    pub fn init(pos: [2]usize, dir: Dir, score: usize) State {
-        return .{
-            .pos   = pos,
-            .dir   = dir,
-            .score = score,
-        };
-    }
 };
-
-fn getObj(map: [][]u8, pos: [2]usize) u8 {
-    return map[pos[0]][pos[1]];
-}
-
-fn markVisited(map: [][]u8, pos: [2]usize) void {
-    map[pos[0]][pos[1]] = 'x';
-}
 
 fn nextPos(pos: [2]usize, dir: Dir) [2]usize {
     const offset = dirToOffset(dir);
@@ -89,22 +96,21 @@ fn rotateDir(dir: Dir, by: i8) Dir {
     return @enumFromInt(@as(usize, @intCast(nd)));
 }
 
-var visited: [][]usize = undefined;
-fn findMinPath(map: [][]u8, start_pos: [2]usize) !u64 {
-    for (0..visited.len) |ri| {
-        for (0..visited[ri].len) |ci| {
-            visited[ri][ci] = std.math.maxInt(usize);
-        }
-    }
-    var stack = try std.ArrayList(State).initCapacity(alloc(), 1024*16);
-    try stack.append(State.init(start_pos, Dir.E, 0 ));
-    try stack.append(State.init(start_pos, Dir.S, turn_score));
-    try stack.append(State.init(start_pos, Dir.N, turn_score));
-    try stack.append(State.init(start_pos, Dir.W, turn_score*2));
+fn findMinPath(map: [][]u8, start_pos: [2]usize, visited: [][]usize) !u64 {
+    assert(map.len == visited.len);
+    assert(map[0].len == visited[0].len);
+    resetMap(usize, visited, std.math.maxInt(usize));
+    var stack = try std.ArrayList(State).initCapacity(gpa(), 1024*16);
+    try stack.append(.{ .pos = start_pos, .dir = Dir.E, .score = 0 });
+    try stack.append(.{ .pos = start_pos, .dir = Dir.S, .score = turn_score});
+    try stack.append(.{ .pos = start_pos, .dir = Dir.N, .score = turn_score});
+    try stack.append(.{ .pos = start_pos, .dir = Dir.W, .score = turn_score*2});
     var min_score: u64 = std.math.maxInt(u64);
     while (stack.popOrNull()) |state| {
         const tmpscore = visited[state.pos[0]][state.pos[1]];
-        visited[state.pos[0]][state.pos[1]] = state.score;
+        if (visited[state.pos[0]][state.pos[1]] > state.score) {
+            visited[state.pos[0]][state.pos[1]] = state.score;
+        }
         const nextpos = nextPos(state.pos, state.dir);
         if (getObj(map, nextpos) == end) {
             if (state.score+step_score < min_score) {
@@ -123,24 +129,21 @@ fn findMinPath(map: [][]u8, start_pos: [2]usize) !u64 {
             visited[state.pos[0]][state.pos[1]] = tmpscore;
             continue;
         }
-        try stack.append(State.init(nextpos, rotateDir(state.dir,   1), state.score+step_score+turn_score));
-        try stack.append(State.init(nextpos, rotateDir(state.dir,  -1), state.score+step_score+turn_score));
-        try stack.append(State.init(nextpos, state.dir, state.score+step_score));
+        try stack.append(.{ .pos = nextpos, .dir = rotateDir(state.dir,   1), .score = state.score+step_score+turn_score});
+        try stack.append(.{ .pos = nextpos, .dir = rotateDir(state.dir,  -1), .score = state.score+step_score+turn_score});
+        try stack.append(.{ .pos = nextpos, .dir = state.dir,                 .score = state.score+step_score});
     }
     return min_score;
 }
 
 fn solve(reader: anytype) !u64 {
-    const input = try reader.readAllAlloc(alloc(), std.math.maxInt(usize));
+    const input = try reader.readAllAlloc(gpa(), std.math.maxInt(usize));
     const map = try readMap(input);
-    visited = try alloc().alloc([]usize, map.len);
-    for (0..map.len) |ri| {
-        visited[ri] = try alloc().alloc(usize, map[ri].len);
-    }
-    const start_pos = find('S', map);
+    const visited = try allocMap(usize, map.len, map[0].len);
+    const start_pos = findObj('S', map);
     dprint("debug:\n", .{});
     dprint("start pos: {any}\n", .{start_pos});
-    return try findMinPath(map, start_pos);
+    return try findMinPath(map, start_pos, visited);
 }
 
 fn test_solve(expected: u64, input_file_path: []const u8) !void {
