@@ -56,6 +56,8 @@ fn getObj(map: [][]u8, pos: [2]usize) u8 {
     return map[pos[0]][pos[1]];
 }
 
+// TODO(arek): This is stupid, just have an array of offsets instead next time
+//             like: .{ .{0,1}, .{-1,0}, .{0,-1}, .{1,0} }
 const Dir = enum { E, S, W, N };
 const dir_count = @typeInfo(Dir).Enum.fields.len;
 const empty = '.';
