@@ -97,37 +97,35 @@ fn findMinPath(map: [][]u8, start_pos: [2]usize) !u64 {
         }
     }
     var stack = try std.ArrayList(State).initCapacity(alloc(), 1024*16);
-    var tmp = try std.ArrayList(State).initCapacity(alloc(), 1024*16);
     try stack.append(State.init(start_pos, Dir.E, 0 ));
     try stack.append(State.init(start_pos, Dir.S, turn_score));
     try stack.append(State.init(start_pos, Dir.N, turn_score));
     try stack.append(State.init(start_pos, Dir.W, turn_score*2));
     var min_score: u64 = std.math.maxInt(u64);
-    var i: usize = 0;
-    while (stack.items.len > 0) {
-        while (stack.popOrNull()) |state| { try tmp.append(state); }
-        while (tmp.popOrNull()) |state| {
-            const nextpos = nextPos(state.pos, state.dir);
-            if (getObj(map, nextpos) == end) {
-                if (state.score+step_score < min_score) {
-                    min_score = state.score+step_score;
+    while (stack.popOrNull()) |state| {
+        const tmpscore = visited[state.pos[0]][state.pos[1]];
+        visited[state.pos[0]][state.pos[1]] = state.score;
+        const nextpos = nextPos(state.pos, state.dir);
+        if (getObj(map, nextpos) == end) {
+            if (state.score+step_score < min_score) {
+                min_score = state.score+step_score;
+                if (visited[nextpos[0]][nextpos[1]] > state.score+step_score) {
+                    visited[nextpos[0]][nextpos[1]] = state.score+step_score;
                 }
-                continue;
             }
-            if (getObj(map, nextpos) != empty) {
-                continue;
-            }
-            if (visited[nextpos[0]][nextpos[1]] < state.score) {
-                continue;
-            } else {
-                visited[state.pos[0]][state.pos[1]] = state.score;
-            }
-            try stack.append(State.init(nextpos, rotateDir(state.dir,   1), state.score+step_score+turn_score));
-            try stack.append(State.init(nextpos, rotateDir(state.dir,  -1), state.score+step_score+turn_score));
-            try stack.append(State.init(nextpos, state.dir, state.score+step_score));
+            continue;
         }
-        dprint("{d}:\n", .{i}); i+= 1;
-        for (map) |row| { dprint("{s}\n", .{row}); }
+        if (getObj(map, nextpos) != empty) {
+            visited[state.pos[0]][state.pos[1]] = tmpscore;
+            continue;
+        }
+        if (visited[nextpos[0]][nextpos[1]] < state.score) {
+            visited[state.pos[0]][state.pos[1]] = tmpscore;
+            continue;
+        }
+        try stack.append(State.init(nextpos, rotateDir(state.dir,   1), state.score+step_score+turn_score));
+        try stack.append(State.init(nextpos, rotateDir(state.dir,  -1), state.score+step_score+turn_score));
+        try stack.append(State.init(nextpos, state.dir, state.score+step_score));
     }
     return min_score;
 }
