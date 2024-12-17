@@ -4,8 +4,8 @@ const mem = std.mem;
 const Allocator = std.mem.Allocator;
 const assert = std.debug.assert;
 const isWhitespace = std.ascii.isWhitespace;
-//const dprint = std.debug.print;
-fn dprint(comptime fmt: []const u8, args: anytype) void { _=fmt; _=args; }
+const dprint = std.debug.print;
+//fn dprint(comptime fmt: []const u8, args: anytype) void { _=fmt; _=args; }
 
 pub fn main() !void {
     const stdout = std.io.getStdOut().writer();
@@ -184,4 +184,4 @@ fn test_solve(expected: []const u8, input_file_path: []const u8) !void {
     try std.testing.expectEqualSlices(u8, expected, try solve(file.reader()));
 }
 test "example1" { try test_solve("4,6,3,5,6,3,5,2,1,0", "./17/example1.txt"); }
-//test "input"    { try test_solve("", "./17/input.txt"); }
+test "input"    { try test_solve("7,4,2,0,5,0,5,3,7", "./17/input.txt"); }
