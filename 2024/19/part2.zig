@@ -4,8 +4,8 @@ const mem = std.mem;
 const Allocator = std.mem.Allocator;
 const assert = std.debug.assert;
 const isWhitespace = std.ascii.isWhitespace;
-//const dprint = std.debug.print;
-fn dprint(comptime fmt: []const u8, args: anytype) void { _=fmt; _=args; }
+const dprint = std.debug.print;
+//fn dprint(comptime fmt: []const u8, args: anytype) void { _=fmt; _=args; }
 
 pub fn main() !void {
     const stdout = std.io.getStdOut().writer();
@@ -32,12 +32,14 @@ fn hasFailed(l: usize, r: usize, fi: usize) bool {
     return false;
 }
 
-fn isPossible(pattern: []const u8, colors_map: std.StringHashMap(void), max: usize) !bool {
+
+fn countPossible(pattern: []const u8, colors_map: *std.StringHashMap(void), max: usize) !usize {
+    var count: usize = 0;
     var si: usize = 0;
     var fi: usize = 0;
     var l: usize = 0;
-    var r: usize = pattern.len;
-    if (r > max) { r = max; }
+    var r: usize = max;
+    if (r > pattern.len) { r = pattern.len; }
     var sl = l;
     var sr = r;
     dprint("testing long: '{s}'", .{pattern});
@@ -48,32 +50,47 @@ fn isPossible(pattern: []const u8, colors_map: std.StringHashMap(void), max: usi
         if (colors_map.contains(color)) {
             dprint(" - found\n", .{});
             if (color.len > 1 and r > 0) {
-                stack[si] = .{ l, r-1 }; si += 1;
+                if (!hasFailed(l, r-1, fi)) {
+                    stack[si] = .{ l, r-1 }; si += 1;
+                }
             }
             l = r;
-            r = pattern.len;
-            if (r-l > max) { r = l+max; }
-            if (l >= pattern.len) return true;
-        } else {
-            dprint(" - not found\n", .{});
-            r -= 1;
-            if (r <= l) {
-                failed[fi] = .{sl, sr}; fi += 1;
+            r = l+max;
+            if (r > pattern.len) { r = pattern.len; }
+            if (l >= pattern.len) {
+                count += 1;
+                dprint("   count+1: {d}->{d}\n", .{count-1, count});
                 while (true) {
-                    if (si == 0) return false;
+                    if (si == 0) return count;
                     dprint("   stack:  {any}\n", .{stack[0..si]});
                     dprint("   failed: {any}\n", .{failed[0..fi]});
                     si -= 1;
                     l = stack[si][0];
                     r = stack[si][1];
                     dprint("   back tracking to: [{d}, {d}]\n", .{l, r});
-                    if (hasFailed(l, r, fi)) {
-                        dprint("   failed\n", .{});
-                    } else {
-                        sl = l;
-                        sr = r;
-                        break;
-                    }
+                    if (hasFailed(l, r, fi)) continue;
+                    sl = l;
+                    sr = r;
+                    break;
+                }
+            }
+        } else {
+            dprint(" - not found\n", .{});
+            r -= 1;
+            if (r <= l) {
+                failed[fi] = .{sl, sr}; fi += 1;
+                while (true) {
+                    if (si == 0) return count;
+                    dprint("   stack:  {any}\n", .{stack[0..si]});
+                    dprint("   failed: {any}\n", .{failed[0..fi]});
+                    si -= 1;
+                    l = stack[si][0];
+                    r = stack[si][1];
+                    dprint("   back tracking to: [{d}, {d}]\n", .{l, r});
+                    if (hasFailed(l, r, fi)) continue;
+                    sl = l;
+                    sr = r;
+                    break;
                 }
             }
         }
@@ -104,12 +121,9 @@ fn solve(reader: anytype) !usize {
     while(lines_it.next()) |line_to_trim| {
         const line = std.mem.trim(u8, line_to_trim, "\r \t");
         if (line.len == 0) continue;
-        if (try isPossible(line, colors_map, longest_color)) {
-            dprint("possible: {s}\n", .{line});
-            count += 1;
-        } else {
-            dprint("not possible: {s}\n", .{line});
-        }
+        const cp = try countPossible(line, &colors_map, longest_color);
+        dprint("possible count for '{s}': {d}\n", .{line, cp});
+        count += cp;
     }
     return count;
 }
@@ -119,6 +133,5 @@ fn test_solve(expected: usize, input_file_path: []const u8) !void {
     defer file.close();
     try std.testing.expectEqual(expected, try solve(file.reader()));
 }
-test "example1" { try test_solve(6,   "./19/example1.txt"); }
-test "input"    { try test_solve(311, "./19/input.txt"); }
-// too low: 283, 285
+test "example1" { try test_solve(16,   "./19/example1.txt"); }
+//test "input"    { try test_solve(0, "./19/input.txt"); }
