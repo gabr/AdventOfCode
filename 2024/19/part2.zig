@@ -21,22 +21,10 @@ fn gpa() Allocator {
     return S.gpa.?.allocator();
 }
 
-fn maxMatching(pattern: []const u8, colors_map: std.StringHashMap(void), max: usize) !usize {
-    if (pattern.len == 0) return error.ZeroLenPattern;
-    var part: []const u8 = "";
-    var max_part: []const u8 = "";
-    while (part.len < pattern.len and part.len < max) {
-        part = pattern[0..part.len+1];
-        if (colors_map.contains(part)) {
-            if (part.len > max_part.len) max_part = part;
-        }
-    }
-    dprint("maxMatching({s}) => {s} ({d})\n", .{pattern, max_part, max_part.len});
-    return max_part.len;
-}
-
 var cache = [_]u64 {0} ** 255;
 fn countPossible(pattern: []const u8, n: usize, colors_map: std.StringHashMap(void), max: usize) !usize {
+    // reset cache when starting
+    if (n == 0) { for (0..cache.len) |i| { cache[i] = 0; } }
     if (pattern[n..].len == 0) return 1; // reached the end
     if (cache[n] > 0) return cache[n] - 1; // already have been here
     cache[n] = 1; // mark visited
@@ -67,9 +55,8 @@ fn solve(reader: anytype) !usize {
     while(lines_it.next()) |line_to_trim| {
         const line = std.mem.trim(u8, line_to_trim, "\r \t");
         if (line.len == 0) continue;
-        for (0..cache.len) |i| { cache[i] = 0; }
         const cp = try countPossible(line, 0, colors_map, longest_color);
-        dprint("possible count for '{s}': {d}\n", .{line, cp});
+        //dprint("possible count for '{s}': {d}\n", .{line, cp});
         count += cp;
     }
     return count;
