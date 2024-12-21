@@ -21,81 +21,32 @@ fn gpa() Allocator {
     return S.gpa.?.allocator();
 }
 
-var stack: [255][2]usize = undefined;
-var failed: [255][2]usize = undefined;
-fn hasFailed(l: usize, r: usize, fi: usize) bool {
-    for (failed[0..fi]) |fail| {
-        if (fail[0] == l and fail[1] == r) {
-            return true;
+fn maxMatching(pattern: []const u8, colors_map: std.StringHashMap(void), max: usize) !usize {
+    if (pattern.len == 0) return error.ZeroLenPattern;
+    var part: []const u8 = "";
+    var max_part: []const u8 = "";
+    while (part.len < pattern.len and part.len < max) {
+        part = pattern[0..part.len+1];
+        if (colors_map.contains(part)) {
+            if (part.len > max_part.len) max_part = part;
         }
     }
-    return false;
+    dprint("maxMatching({s}) => {s} ({d})\n", .{pattern, max_part, max_part.len});
+    return max_part.len;
 }
 
-
-fn countPossible(pattern: []const u8, colors_map: *std.StringHashMap(void), max: usize) !usize {
-    var count: usize = 0;
-    var si: usize = 0;
-    var fi: usize = 0;
-    var l: usize = 0;
-    var r: usize = max;
-    if (r > pattern.len) { r = pattern.len; }
-    var sl = l;
-    var sr = r;
-    dprint("testing long: '{s}'", .{pattern});
-    while (true) {
-        const color = pattern[l..r];
-        if (color.len > max) { r -= 1; continue; }
-        dprint("  testing: [{d},{d}] '{s}'", .{l, r, color});
-        if (colors_map.contains(color)) {
-            dprint(" - found\n", .{});
-            if (color.len > 1 and r > 0) {
-                if (!hasFailed(l, r-1, fi)) {
-                    stack[si] = .{ l, r-1 }; si += 1;
-                }
-            }
-            l = r;
-            r = l+max;
-            if (r > pattern.len) { r = pattern.len; }
-            if (l >= pattern.len) {
-                count += 1;
-                dprint("   count+1: {d}->{d}\n", .{count-1, count});
-                while (true) {
-                    if (si == 0) return count;
-                    dprint("   stack:  {any}\n", .{stack[0..si]});
-                    dprint("   failed: {any}\n", .{failed[0..fi]});
-                    si -= 1;
-                    l = stack[si][0];
-                    r = stack[si][1];
-                    dprint("   back tracking to: [{d}, {d}]\n", .{l, r});
-                    if (hasFailed(l, r, fi)) continue;
-                    sl = l;
-                    sr = r;
-                    break;
-                }
-            }
-        } else {
-            dprint(" - not found\n", .{});
-            r -= 1;
-            if (r <= l) {
-                failed[fi] = .{sl, sr}; fi += 1;
-                while (true) {
-                    if (si == 0) return count;
-                    dprint("   stack:  {any}\n", .{stack[0..si]});
-                    dprint("   failed: {any}\n", .{failed[0..fi]});
-                    si -= 1;
-                    l = stack[si][0];
-                    r = stack[si][1];
-                    dprint("   back tracking to: [{d}, {d}]\n", .{l, r});
-                    if (hasFailed(l, r, fi)) continue;
-                    sl = l;
-                    sr = r;
-                    break;
-                }
-            }
+var cache = [_]u64 {0} ** 255;
+fn countPossible(pattern: []const u8, n: usize, colors_map: std.StringHashMap(void), max: usize) !usize {
+    if (pattern[n..].len == 0) return 1; // reached the end
+    if (cache[n] > 0) return cache[n] - 1; // already have been here
+    cache[n] = 1; // mark visited
+    for (0..max+1) |i| {
+        if (n+i >= pattern.len) break;
+        if (colors_map.contains(pattern[n..n+i+1])) {
+            cache[n] += try countPossible(pattern, n+i+1, colors_map, max);
         }
     }
-    unreachable;
+    return cache[n] - 1;
 }
 
 fn solve(reader: anytype) !usize {
@@ -112,16 +63,12 @@ fn solve(reader: anytype) !usize {
             try colors_map.put(color, {});
         }
     }
-    //var colors_it = colors_map.iterator();
-    //dprint("colors ({d}):\n", .{colors_map.count()});
-    //while (colors_it.next()) |entry| {
-    //    dprint(" color: {s}\n", .{entry.key_ptr.*});
-    //}
     var count: usize = 0;
     while(lines_it.next()) |line_to_trim| {
         const line = std.mem.trim(u8, line_to_trim, "\r \t");
         if (line.len == 0) continue;
-        const cp = try countPossible(line, &colors_map, longest_color);
+        for (0..cache.len) |i| { cache[i] = 0; }
+        const cp = try countPossible(line, 0, colors_map, longest_color);
         dprint("possible count for '{s}': {d}\n", .{line, cp});
         count += cp;
     }
@@ -134,4 +81,7 @@ fn test_solve(expected: usize, input_file_path: []const u8) !void {
     try std.testing.expectEqual(expected, try solve(file.reader()));
 }
 test "example1" { try test_solve(16,   "./19/example1.txt"); }
-//test "input"    { try test_solve(0, "./19/input.txt"); }
+test "input"    { try test_solve(616234236468263, "./19/input.txt"); }
+// too low: 1567249600
+//         16583199666
+//     616234236468263
