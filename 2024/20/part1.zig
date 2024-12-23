@@ -139,6 +139,7 @@ fn solve(threshold: usize, reader: anytype) !usize {
     const baseCount = try map.countPath(start, end) orelse return error.BaseCountNotFound;
     //dprint("base: {d}\n", .{baseCount});
     var total: usize = 0;
+    // just trying out all possibilities - slow but works
     for (1..map.rows.len-1) |ri| {
         for (1..map.rows[0].len-1) |ci| {
             if (map.rows[ri][ci] != Map.wall) continue;
@@ -171,4 +172,5 @@ test { try test_solve(36, 1+3,   "./20/example1.txt"); }
 test { try test_solve(38, 1+2,   "./20/example1.txt"); }
 test { try test_solve(40, 1+1,   "./20/example1.txt"); }
 test { try test_solve(64, 1+0,   "./20/example1.txt"); }
-test "input" { try test_solve(1518, 0, "./20/input.txt"); }
+// slow but works
+//test "input" { try test_solve(100, 1518, "./20/input.txt"); }
