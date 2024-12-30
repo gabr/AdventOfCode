@@ -4,6 +4,9 @@ const mem = std.mem; const Allocator = std.mem.Allocator; const assert = std.deb
 const isWhitespace = std.ascii.isWhitespace;
 //const dprint = std.debug.print;
 fn dprint(comptime fmt: []const u8, args: anytype) void { _=fmt; _=args; }
+//fn dprint(comptime fmt: []const u8, args: anytype) void {
+//    std.io.getStdOut().writer().print(fmt, args) catch unreachable;
+//}
 
 pub fn main() !void {
     const stdout = std.io.getStdOut().writer();
@@ -78,6 +81,7 @@ fn diffToMoves(diff: [2]i8, buf: []u8, updownfirst: bool) []u8 {
         for (0..@abs(diff[1])) |_| { buf[i] = rightleft; i+=1; }
         for (0..@abs(diff[0])) |_| { buf[i] = updown;    i+=1; }
     }
+    buf[i] = 'A'; i+=1;
     return buf[0..i];
 }
 
@@ -85,44 +89,64 @@ fn posDiff(p1: [2]i8, p2: [2]i8) [2]i8 {
     return .{ p1[0] - p2[0], p1[1] - p2[1] };
 }
 
-const keypads: u8 = 2;
+const keypads: usize = 25;
+var cache_init: bool = true;
+var cache: [keypads]std.StringHashMap(usize) = undefined;
 fn typeDirKeys(keys: []const u8, directional_keypads_count: usize) usize {
-    var buf: [8]u8 = undefined;
+    //var buf: [8]u8 = undefined;
+    var buf = gpa().alloc(u8, 255) catch unreachable;
+    defer gpa().free(buf);
+    var prevkey: u8 = 'A';
     var prevpos = dirKeypadPos('A');
     var len: usize = 0;
     var up: [2]bool = undefined;
     var upi: usize = 0;
+    var cachekeybuf: [2]u8 = undefined;
     for (keys) |key| {
         const nextpos = dirKeypadPos(key);
-        const diff = posDiff(prevpos, nextpos);
-             if (prevpos[1] == 0 and nextpos[0] == 0) { upi = 1; up[0] = false; }
-        else if (prevpos[0] == 0 and nextpos[1] == 0) { upi = 1; up[0] = true;  }
-        else                                          { upi = 2; up[0] = true; up[1] = false; }
-        var min: usize = math.maxInt(usize);
-        for (up) |updownfirst| {
-            const seq = diffToMoves(diff, buf[0..], updownfirst);
-            buf[seq.len] = 'A';
-            const seqa = buf[0..seq.len+1];
-            var dirlen: usize = 0;
-            if (directional_keypads_count > 0) {
-                dirlen = typeDirKeys(seqa, directional_keypads_count-1);
+        cachekeybuf[0] = prevkey;
+        cachekeybuf[1] = key;
+        if (cache[directional_keypads_count].get(cachekeybuf[0..])) |cmin| {
+            len += cmin;
+        } else {
+            const diff = posDiff(prevpos, nextpos);
+                 if (prevpos[1] == 0 and nextpos[0] == 0) { upi = 1; up[0] = false; }
+            else if (prevpos[0] == 0 and nextpos[1] == 0) { upi = 1; up[0] = true;  }
+            else                                          { upi = 2; up[0] = true;  up[1] = false; }
+            var min: usize = math.maxInt(usize);
+            for (up[0..upi]) |updownfirst| {
+                const seqa = diffToMoves(diff, buf[0..], updownfirst);
+                var dirlen: usize = 0;
+                if (directional_keypads_count > 0) {
+                    dirlen = typeDirKeys(seqa, directional_keypads_count-1);
+                }
+                const total = seqa.len - 1 + dirlen;
+                if (total < min) {
+                    min = total;
+                    for (1..(keypads+1-directional_keypads_count)) |_| { dprint(" ", .{}); }
+                    dprint("new min: seqa '{s}' ({d}), dirlen: {d}, total: {d}\n", .{seqa, seqa.len, dirlen, total});
+                }
             }
-            const total = seq.len + dirlen;
-            if (total < min) {
-                min = total;
-                //for (0..(3-directional_keypads_count)) |_| { dprint(" ", .{}); }
-                //dprint("new min: seq '{s}' ({d}), dirlen: {d}, total: {d}\n", .{seq, seq.len, dirlen, total});
-            }
+
+            const cachekey = gpa().dupe(u8, cachekeybuf[0..]) catch unreachable;
+            cache[directional_keypads_count].put(cachekey, min) catch unreachable;
+            len += min;
         }
-        len += min;
         prevpos = nextpos;
+        prevkey = key;
     }
     return len;
 }
 
 fn typeKeys(code: []const u8, directional_keypads_count: usize) usize {
+    if (cache_init) {
+        cache_init = false;
+        for (cache[0..]) |*ca| { ca.* = std.StringHashMap(usize).init(gpa()); }
+    }
     dprint("debugging code: '{s}'\n", .{code});
-    var buf: [8]u8 = undefined;
+    //var buf: [255]u8 = undefined;
+    var buf = gpa().alloc(u8, 255) catch unreachable;
+    defer gpa().free(buf);
     var prevkey: u8 = 'A';
     var prevpos = numKeypadPos('A');
     var len: usize = 0;
@@ -133,16 +157,14 @@ fn typeKeys(code: []const u8, directional_keypads_count: usize) usize {
         const diff = posDiff(prevpos, nextpos);
              if (prevpos[1] == 0 and nextpos[0] == 3) { upi = 1; up[0] = false; }
         else if (prevpos[0] == 3 and nextpos[1] == 0) { upi = 1; up[0] = true;  }
-        else                                          { upi = 2; up[0] = true; up[1] = false; }
+        else                                          { upi = 2; up[0] = true;  up[1] = false; }
         var min: usize = math.maxInt(usize);
         for (up[0..upi]) |updownfirst| {
-            const seq = diffToMoves(diff, buf[0..], updownfirst);
-            buf[seq.len] = 'A';
-            const seqa = buf[0..seq.len+1];
-            //dprint ("{c} ({d},{d}) -> {c} ({d}, {d}) '{s}' ({d})\n", .{
-            //    prevkey, prevpos[0], prevpos[1],
-            //        key, nextpos[0], nextpos[1],
-            //    seqa, seqa.len });
+            const seqa = diffToMoves(diff, buf[0..], updownfirst);
+            dprint ("{c} ({d},{d}) -> {c} ({d}, {d}) '{s}' ({d})\n", .{
+                prevkey, prevpos[0], prevpos[1],
+                    key, nextpos[0], nextpos[1],
+                seqa, seqa.len });
             const dirlen = typeDirKeys(seqa, directional_keypads_count-1);
             const total = seqa.len + dirlen;
             if (total < min) {
@@ -154,6 +176,7 @@ fn typeKeys(code: []const u8, directional_keypads_count: usize) usize {
         prevpos = nextpos;
         prevkey = key;
     }
+    dprint("typeKeys: '{s}': {d}\n", .{code, len});
     return len;
 }
 
@@ -177,12 +200,9 @@ fn test_solve(expected: usize, input_file_path: []const u8) !void {
     try std.testing.expectEqual(expected, try solve(file.reader()));
 }
 
-test { try std.testing.expectEqual("<vA<AA>>^AvAA<^A>A<v<A>>^AvA^A<vA>^A<v<A>^A>AAvA^A<v<A>A>^AAAvA<^A>A" .len, typeKeys("029A", 2)); }
-test { try std.testing.expectEqual("<v<A>>^AAAvA^A<vA<AA>>^AvAA<^A>A<v<A>A>^AAAvA<^A>A<vA>^A<A>A"         .len, typeKeys("980A", 2)); }
-test { try std.testing.expectEqual("<v<A>>^A<vA<A>>^AAvAA<^A>A<v<A>>^AAvA^A<vA>^AA<A>A<v<A>A>^AAAvA<^A>A" .len, typeKeys("179A", 2)); }
-test { try std.testing.expectEqual("<v<A>>^AA<vA<A>>^AAvAA<^A>A<vA>^A<A>A<vA>^A<A>A<v<A>A>^AAvA<^A>A"     .len, typeKeys("456A", 2)); }
-test { try std.testing.expectEqual("<v<A>>^AvA^A<vA<AA>>^AAvA<^A>AAvA^A<vA>^AA<A>A<v<A>A>^AAAvA<^A>A"     .len, typeKeys("379A", 2)); }
-
-test { try test_solve(126384, "./21/example1.txt"); }
-test { try test_solve(94284, "./21/input.txt");    }
-// too high: 98508
+test { try test_solve(116821732384052, "./21/input.txt");    }
+// too low:   77996342608406    < debug build
+// too low:   87084099621588    < release build - something is wrong
+//            87541418752276    hmm fixed this by increasing the buf size to 255 but why?
+// too high: 213972469397184
+//           190718579945838
