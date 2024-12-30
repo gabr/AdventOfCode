@@ -4,9 +4,6 @@ const mem = std.mem; const Allocator = std.mem.Allocator; const assert = std.deb
 const isWhitespace = std.ascii.isWhitespace;
 //const dprint = std.debug.print;
 fn dprint(comptime fmt: []const u8, args: anytype) void { _=fmt; _=args; }
-//fn dprint(comptime fmt: []const u8, args: anytype) void {
-//    std.io.getStdOut().writer().print(fmt, args) catch unreachable;
-//}
 
 pub fn main() !void {
     const stdout = std.io.getStdOut().writer();
@@ -26,19 +23,7 @@ fn parseInt(comptime T: type, str: []const u8) !T {
     return try std.fmt.parseInt(T, str, 10);
 }
 
-///    0   1   2    < ci
-///  +---+---+---+
-///  | 7 | 8 | 9 |  0
-///  +---+---+---+
-///  | 4 | 5 | 6 |  1
-///  +---+---+---+
-///  | 1 | 2 | 3 |  2
-///  +---+---+---+
-///      | 0 | A |  3
-///      +---+---+
-///                 ^
-///                 ri
-fn numKeypadPos(key: u8) [2]i8 { // .{ ri, ci }
+fn numKeypadPos(key: u8) [2]i8 { // .{row index, column index}
     return switch (key) {
         '7' => .{0,0}, '8' => .{0,1}, '9' => .{0,2},
         '4' => .{1,0}, '5' => .{1,1}, '6' => .{1,2},
@@ -51,15 +36,7 @@ fn numKeypadPos(key: u8) [2]i8 { // .{ ri, ci }
     };
 }
 
-///    0   1   2   < ci
-///      +---+---+
-///      | ^ | A | 0
-///  +---+---+---+
-///  | < | v | > | 1
-///  +---+---+---+
-///                ^
-///                ri
-fn dirKeypadPos(key: u8) [2]i8 { // .{ ri, ci }
+fn dirKeypadPos(key: u8) [2]i8 { // .{row index, column index}
     return switch (key) {
                         '^' =>  .{0,1}, 'A' =>  .{0,2},
         '<' =>  .{1,0}, 'v' =>  .{1,1}, '>' =>  .{1,2},
@@ -70,113 +47,58 @@ fn dirKeypadPos(key: u8) [2]i8 { // .{ ri, ci }
     };
 }
 
+/// produces array of moves
 fn diffToMoves(diff: [2]i8, buf: []u8, updownfirst: bool) []u8 {
     var i: usize = 0;
     const updown    : u8 = if (diff[0] > 0) '^' else 'v';
     const rightleft : u8 = if (diff[1] < 0) '>' else '<';
+    var rc: u8 = @abs(diff[0]);
+    var cc: u8 = @abs(diff[1]);
     if (updownfirst) {
-        for (0..@abs(diff[0])) |_| { buf[i] = updown;    i+=1; }
-        for (0..@abs(diff[1])) |_| { buf[i] = rightleft; i+=1; }
+        while (rc > 0) : (rc -= 1) { buf[i] = updown;    i += 1; }
+        while (cc > 0) : (cc -= 1) { buf[i] = rightleft; i += 1; }
     } else {
-        for (0..@abs(diff[1])) |_| { buf[i] = rightleft; i+=1; }
-        for (0..@abs(diff[0])) |_| { buf[i] = updown;    i+=1; }
+        while (cc > 0) : (cc -= 1) { buf[i] = rightleft; i += 1; }
+        while (rc > 0) : (rc -= 1) { buf[i] = updown;    i += 1; }
     }
     buf[i] = 'A'; i+=1;
     return buf[0..i];
 }
 
-fn posDiff(p1: [2]i8, p2: [2]i8) [2]i8 {
-    return .{ p1[0] - p2[0], p1[1] - p2[1] };
-}
+const total_keypads: usize = 25;
+const keys_count = math.maxInt(u8)/2;  // this is madnesss - how to do it cleaner ZIG????
+var cache = [_][keys_count][keys_count]?usize { [_][keys_count]?usize { [_]?usize {null} ** keys_count } ** keys_count } ** (total_keypads+1);
 
-const keypads: usize = 25;
-var cache_init: bool = true;
-var cache: [keypads]std.StringHashMap(usize) = undefined;
-fn typeDirKeys(keys: []const u8, directional_keypads_count: usize) usize {
-    //var buf: [8]u8 = undefined;
-    var buf = gpa().alloc(u8, 255) catch unreachable;
-    defer gpa().free(buf);
-    var prevkey: u8 = 'A';
-    var prevpos = dirKeypadPos('A');
+fn typeKeys(code: []const u8, keypad: usize) usize {
+    const first = keypad == total_keypads;
+    var buf: [8]u8 = undefined;
     var len: usize = 0;
-    var up: [2]bool = undefined;
-    var upi: usize = 0;
-    var cachekeybuf: [2]u8 = undefined;
-    for (keys) |key| {
-        const nextpos = dirKeypadPos(key);
-        cachekeybuf[0] = prevkey;
-        cachekeybuf[1] = key;
-        if (cache[directional_keypads_count].get(cachekeybuf[0..])) |cmin| {
+    var pkey: u8 = 'A';
+    const g: u8 = if (first) 3 else 0; // row index of the gap in keypad
+    for (code) |nkey| {
+        if (cache[keypad][pkey][nkey]) |cmin| {
             len += cmin;
         } else {
-            const diff = posDiff(prevpos, nextpos);
-                 if (prevpos[1] == 0 and nextpos[0] == 0) { upi = 1; up[0] = false; }
-            else if (prevpos[0] == 0 and nextpos[1] == 0) { upi = 1; up[0] = true;  }
-            else                                          { upi = 2; up[0] = true;  up[1] = false; }
+            const ppos = if (first) numKeypadPos(pkey) else dirKeypadPos(pkey);
+            const npos = if (first) numKeypadPos(nkey) else dirKeypadPos(nkey);
+            const updownfirst: []const bool =
+                     if (ppos[1] == 0 and npos[0] == g) &[_]bool{ false }
+                else if (ppos[0] == g and npos[1] == 0) &[_]bool{ true  }
+                else                                    &[_]bool{ true, false };
+            const posdiff = .{ ppos[0] - npos[0], ppos[1] - npos[1] };
             var min: usize = math.maxInt(usize);
-            for (up[0..upi]) |updownfirst| {
-                const seqa = diffToMoves(diff, buf[0..], updownfirst);
-                var dirlen: usize = 0;
-                if (directional_keypads_count > 0) {
-                    dirlen = typeDirKeys(seqa, directional_keypads_count-1);
-                }
-                const total = seqa.len - 1 + dirlen;
-                if (total < min) {
-                    min = total;
-                    for (1..(keypads+1-directional_keypads_count)) |_| { dprint(" ", .{}); }
-                    dprint("new min: seqa '{s}' ({d}), dirlen: {d}, total: {d}\n", .{seqa, seqa.len, dirlen, total});
-                }
+            for (updownfirst) |udf| {
+                const seq = diffToMoves(posdiff, buf[0..], udf);
+                const dirlen: usize = if (keypad == 0) 0 else typeKeys(seq, keypad-1);
+                var total = seq.len + dirlen;
+                if (!first) total -= 1;
+                if (total < min) min = total;
             }
-
-            const cachekey = gpa().dupe(u8, cachekeybuf[0..]) catch unreachable;
-            cache[directional_keypads_count].put(cachekey, min) catch unreachable;
+            cache[keypad][pkey][nkey] = min;
             len += min;
         }
-        prevpos = nextpos;
-        prevkey = key;
+        pkey = nkey;
     }
-    return len;
-}
-
-fn typeKeys(code: []const u8, directional_keypads_count: usize) usize {
-    if (cache_init) {
-        cache_init = false;
-        for (cache[0..]) |*ca| { ca.* = std.StringHashMap(usize).init(gpa()); }
-    }
-    dprint("debugging code: '{s}'\n", .{code});
-    //var buf: [255]u8 = undefined;
-    var buf = gpa().alloc(u8, 255) catch unreachable;
-    defer gpa().free(buf);
-    var prevkey: u8 = 'A';
-    var prevpos = numKeypadPos('A');
-    var len: usize = 0;
-    var up: [2]bool = undefined;
-    var upi: usize = 0;
-    for (code) |key| {
-        const nextpos = numKeypadPos(key);
-        const diff = posDiff(prevpos, nextpos);
-             if (prevpos[1] == 0 and nextpos[0] == 3) { upi = 1; up[0] = false; }
-        else if (prevpos[0] == 3 and nextpos[1] == 0) { upi = 1; up[0] = true;  }
-        else                                          { upi = 2; up[0] = true;  up[1] = false; }
-        var min: usize = math.maxInt(usize);
-        for (up[0..upi]) |updownfirst| {
-            const seqa = diffToMoves(diff, buf[0..], updownfirst);
-            dprint ("{c} ({d},{d}) -> {c} ({d}, {d}) '{s}' ({d})\n", .{
-                prevkey, prevpos[0], prevpos[1],
-                    key, nextpos[0], nextpos[1],
-                seqa, seqa.len });
-            const dirlen = typeDirKeys(seqa, directional_keypads_count-1);
-            const total = seqa.len + dirlen;
-            if (total < min) {
-                //dprint("new min: seqa '{s}' ({d}), dirlen: {d}, total: {d}\n", .{seqa, seqa.len, dirlen, total});
-                min = total;
-            }
-        }
-        len += min;
-        prevpos = nextpos;
-        prevkey = key;
-    }
-    dprint("typeKeys: '{s}': {d}\n", .{code, len});
     return len;
 }
 
@@ -187,7 +109,7 @@ fn solve(reader: anytype) !usize {
     while(lines_it.next()) |line_to_trim| {
         const line = std.mem.trim(u8, line_to_trim, "\r \t");
         if (line.len == 0) break;
-        const len = typeKeys(line, keypads);
+        const len = typeKeys(line, total_keypads);
         const number = try parseInt(usize, line[0..line.len-1]);
         sum += len * number;
     }
